@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Date Picker Example</title>
+    <link rel="stylesheet" href="src/everything-date-range-picker.css" />
+  </head>
+  <body>
+    <h1>My datepicker</h1>
+    <div id="datePickerContainer"></div>
+    <script src="src/everything-date-range-picker.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const datePicker = new EverythingDateRangePicker(
+          "datePickerContainer",
+          {
+            selectedStartDate: "2024-05-15",
+            selectedEndDate: "2024-05-20",
+          }
+        );
+      });
+    </script>
+  </body>
+</html>

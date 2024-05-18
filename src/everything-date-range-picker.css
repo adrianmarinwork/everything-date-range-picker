@@ -1,0 +1,32 @@
+.date-range-picker-container {
+  position: relative;
+  display: inline-block;
+
+  & .date-range-picker-display {
+    padding: 10px;
+    border: 1px solid #ccc;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+
+    & .calendar-icon,
+    .selected-dates,
+    .arrow-icon {
+      margin-right: 10px;
+    }
+  }
+
+  & .date-range-picker-calendar-container {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: white;
+    border: 1px solid #ccc;
+    display: none;
+    z-index: 10;
+
+    & .calendar {
+      padding: 10px;
+    }
+  }
+}
