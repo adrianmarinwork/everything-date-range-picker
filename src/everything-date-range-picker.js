@@ -95,9 +95,11 @@ class EverythingDateRangePicker {
     this.startDate =
       options.startDate || new Date(new Date().setHours(0, 0, 0, 0));
     this.#checkValidityOfDataType("startDate");
+    this.currentStartDate = this.startDate;
     this.endDate =
       options.endDate || new Date(new Date().setHours(23, 59, 59, 999));
     this.#checkValidityOfDataType("endDate");
+    this.currentEndDate = this.endDate;
     this.minDate = options.minDate || null;
     this.#checkValidityOfDataType("minDate");
     this.maxDate = options.maxDate || null;
@@ -145,26 +147,26 @@ class EverythingDateRangePicker {
       ".date-range-picker-calendar-container"
     );
 
-    this.display.addEventListener("click", () => this.toggleCalendar());
-    document.addEventListener("click", (event) =>
-      this.documentClickHandler(event)
-    );
-
     this.selectedDatesElement = this.container.querySelector(".selected-dates");
 
     this.startCalendar = this.container.querySelector(".start-date-calendar");
 
+    // If the singleCalendar boolean is true we render only the start calendar
     if (this.singleCalendar) {
       this.populateStartCalendar();
-      return;
+    } else {
+      this.endCalendar = this.container.querySelector(".end-date-calendar");
+      this.rangesContainer = this.container.querySelector(".ranges-container");
+
+      this.populateStartCalendar();
+      this.populateEndCalendar();
+      this.populateRangesContainer();
     }
 
-    this.endCalendar = this.container.querySelector(".end-date-calendar");
-    this.rangesContainer = this.container.querySelector(".ranges-container");
-
-    this.populateStartCalendar();
-    this.populateEndCalendar();
-    this.populateRangesContainer();
+    this.display.addEventListener("click", () => this.toggleCalendar());
+    document.addEventListener("click", (event) =>
+      this.documentClickHandler(event)
+    );
   }
 
   /**
@@ -183,7 +185,47 @@ class EverythingDateRangePicker {
   documentClickHandler(event) {
     if (!this.container.contains(event.target)) {
       this.calendarContainer.style.display = "none";
+    } else if (event.target.className.includes("calendar-arrow")) {
+      this.changeRenderedCalendar(event);
     }
+  }
+
+  changeRenderedCalendar(event) {
+    event.stopPropagation();
+    const clickedArrow = event.target;
+    const isLeftCalendar = clickedArrow.className.includes("left");
+    const isPreviousArrow = clickedArrow.className.includes("previous");
+
+    let dateToUse = this.currentStartDate;
+    let calendarToUse = this.startCalendar;
+
+    // If is the right calendar
+    if (!isLeftCalendar) {
+      dateToUse = this.currentEndDate;
+      calendarToUse = this.endCalendar;
+    }
+
+    let newDateToRender;
+
+    if (isPreviousArrow) {
+      newDateToRender = new Date().setMonth(dateToUse.getMonth() - 1);
+    } else {
+      newDateToRender = new Date().setMonth(dateToUse.getMonth() + 1);
+    }
+
+    newDateToRender = new Date(newDateToRender);
+
+    if (isLeftCalendar) {
+      this.currentStartDate = new Date(newDateToRender);
+    } else {
+      this.currentEndDate = new Date(newDateToRender);
+    }
+
+    let calendarHTML = this.#generateCalendar(
+      newDateToRender,
+      isLeftCalendar ? "left" : "right"
+    );
+    calendarToUse.innerHTML = calendarHTML;
   }
 
   /**
@@ -191,7 +233,7 @@ class EverythingDateRangePicker {
    */
   populateStartCalendar() {
     const startDate = this.startDate;
-    let calendarHTML = this.#generateCalendar(startDate);
+    let calendarHTML = this.#generateCalendar(startDate, "left");
     this.startCalendar.innerHTML = calendarHTML;
   }
 
@@ -200,7 +242,7 @@ class EverythingDateRangePicker {
    */
   populateEndCalendar() {
     const endDate = this.endDate;
-    let calendarHTML = this.#generateCalendar(endDate);
+    let calendarHTML = this.#generateCalendar(endDate, "right");
     this.endCalendar.innerHTML = calendarHTML;
   }
 
@@ -226,9 +268,10 @@ class EverythingDateRangePicker {
   /**
    * Method that takes care of generating the HTML of the calendar
    * @param {Object} date The date object to use to generate the calendar
+   * @param {String} sideOfCalendar The side of the calendar we are rendering (left, right)
    * @returns The HTML of the calendar
    */
-  #generateCalendar(date) {
+  #generateCalendar(date, sideOfCalendar) {
     const month = date.getMonth();
     const monthName = this.#monthsStrings[month];
     let firstDayOfMonthInWeek = new Date(date);
@@ -316,8 +359,16 @@ class EverythingDateRangePicker {
 
     let calendarHTML = `
       <div style="display: flex; flex-direction: column; gap: 10px;">
-        <div>
-          ${monthName}
+        <div style="display: flex; justify-content: space-between;">
+          <div class="calendar-arrow ${sideOfCalendar}-calendar-previous-arrow">
+            <-
+          </div>
+          <div>
+            ${monthName}
+          </div>
+          <div class="calendar-arrow ${sideOfCalendar}-calendar-next-arrow">
+            ->
+          </div>
         </div>
         <div>
           <table>
