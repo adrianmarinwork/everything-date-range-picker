@@ -85,6 +85,9 @@ class EverythingDateRangePicker {
     Saturday: 6,
   };
 
+  #startCalendarMonth;
+  #endCalendarMonth;
+
   constructor(containerId, options = {}) {
     this.container = document.getElementById(containerId);
 
@@ -122,10 +125,58 @@ class EverythingDateRangePicker {
   }
 
   initDatePicker() {
-    const singleCalendar = `<div class="calendar start-date-calendar"> test </div>`;
+    const singleCalendar = `
+      <div class="calendar">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between;">
+            <div class="calendar-arrow left-calendar-previous-arrow">
+              <-
+            </div>
+            <div class="start-date-calendar-month">
+            </div>
+            <div class="calendar-arrow left-calendar-next-arrow">
+              ->
+            </div>
+          </div>
+          <div class="start-date-calendar">
+          </div>
+        </div>
+      </div>
+    `;
+
     const doubleCalendar = `
-      <div class="calendar start-date-calendar"> test </div>
-      <div class="calendar end-date-calendar"> test </div>
+      <div class="calendar">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between;">
+            <div class="calendar-arrow left-calendar-previous-arrow">
+              <-
+            </div>
+            <div class="start-date-calendar-month">
+            </div>
+            <div class="calendar-arrow left-calendar-next-arrow">
+              ->
+            </div>
+          </div>
+          <div class="start-date-calendar">
+          </div>
+        </div>
+      </div>
+      <div class="calendar">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between;">
+            <div class="calendar-arrow right-calendar-previous-arrow">
+              <-
+            </div>
+            <div class="end-date-calendar-month">
+            </div>
+            <div class="calendar-arrow right-calendar-next-arrow">
+              ->
+            </div>
+          </div>
+          <div class="end-date-calendar">
+          </div>
+        </div>
+      </div>
       <div class="calendar ranges-container"> list </div>
     `;
 
@@ -150,12 +201,18 @@ class EverythingDateRangePicker {
     this.selectedDatesElement = this.container.querySelector(".selected-dates");
 
     this.startCalendar = this.container.querySelector(".start-date-calendar");
+    this.#startCalendarMonth = this.container.querySelector(
+      ".start-date-calendar-month"
+    );
 
     // If the singleCalendar boolean is true we render only the start calendar
     if (this.singleCalendar) {
       this.populateStartCalendar();
     } else {
       this.endCalendar = this.container.querySelector(".end-date-calendar");
+      this.#endCalendarMonth = this.container.querySelector(
+        ".end-date-calendar-month"
+      );
       this.rangesContainer = this.container.querySelector(".ranges-container");
 
       this.populateStartCalendar();
@@ -167,6 +224,15 @@ class EverythingDateRangePicker {
     document.addEventListener("click", (event) =>
       this.documentClickHandler(event)
     );
+
+    // Add click event listener to the arrows to navigate the months
+    const listOfCalendarArrows =
+      this.container.querySelectorAll(".calendar-arrow");
+    listOfCalendarArrows.forEach((calendarArrow) => {
+      calendarArrow.addEventListener("click", (event) =>
+        this.changeRenderedCalendar(event)
+      );
+    });
   }
 
   /**
@@ -185,8 +251,6 @@ class EverythingDateRangePicker {
   documentClickHandler(event) {
     if (!this.container.contains(event.target)) {
       this.calendarContainer.style.display = "none";
-    } else if (event.target.className.includes("calendar-arrow")) {
-      this.changeRenderedCalendar(event);
     }
   }
 
@@ -357,32 +421,23 @@ class EverythingDateRangePicker {
       tableDaysHTML += `</tr>`;
     }
 
+    if (sideOfCalendar === "left") {
+      this.#startCalendarMonth.innerHTML = monthName;
+    } else {
+      this.#endCalendarMonth.innerHTML = monthName;
+    }
+
     let calendarHTML = `
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        <div style="display: flex; justify-content: space-between;">
-          <div class="calendar-arrow ${sideOfCalendar}-calendar-previous-arrow">
-            <-
-          </div>
-          <div>
-            ${monthName}
-          </div>
-          <div class="calendar-arrow ${sideOfCalendar}-calendar-next-arrow">
-            ->
-          </div>
-        </div>
-        <div>
-          <table>
-            <thead>
-              <tr>
-                ${tableHeaderDaysHTML}
-              </tr>
-            </thead>
-            <tbody>
-              ${tableDaysHTML}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <table>
+        <thead>
+          <tr>
+            ${tableHeaderDaysHTML}
+          </tr>
+        </thead>
+        <tbody>
+          ${tableDaysHTML}
+        </tbody>
+      </table>
     `;
 
     return calendarHTML;
