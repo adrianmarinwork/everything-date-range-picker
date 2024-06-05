@@ -115,6 +115,29 @@ class EverythingDateRangePicker {
     this.spanOfSelecteableDays = options.spanOfSelecteableDays || null;
     this.firstDayOfWeek = options.firstDayOfWeek || "Monday";
 
+    // Lets make the different checks for the dates
+    const isStartDateBigger = this.checkIfFirstDateBigger(
+      this.startDate,
+      this.endDate
+    );
+
+    if (isStartDateBigger) {
+      console.log("bigger");
+      this.startDate = new Date(this.endDate);
+      this.currentStartDate = this.startDate;
+    }
+
+    const isStartDateSmaller = this.checkIfFirstDateSmaller(
+      this.startDate,
+      this.endDate
+    );
+
+    if (isStartDateSmaller) {
+      console.log("smaller");
+      this.endDate = new Date(this.startDate);
+      this.currentEndDate = this.endDate;
+    }
+
     this.initDatePicker();
   }
 
@@ -441,6 +464,34 @@ class EverythingDateRangePicker {
     `;
 
     return calendarHTML;
+  }
+
+  /**
+   * Method to check if the first date sent as parameter is bigger than the second one
+   * @param {Object} date1 First date to compare
+   * @param {Object} date2 Second date to compare
+   * @returns {Boolean} Indicates if the first date is bigger
+   */
+  checkIfFirstDateBigger(date1, date2) {
+    const firstDate = new Date(date1);
+    const secondDate = new Date(date2);
+    const differenceOfValuesOf = firstDate.valueOf() - secondDate.valueOf();
+    const isFirstDateBigger = differenceOfValuesOf > 0;
+    return isFirstDateBigger;
+  }
+
+  /**
+   * Method to check if the first date sent as parameter is smaller than the second one
+   * @param {Object} date1 First date to compare
+   * @param {Object} date2 Second date to compare
+   * @returns {Boolean} Indicates if the first date is smaller
+   */
+  checkIfFirstDateSmaller(date1, date2) {
+    const firstDate = new Date(date1);
+    const secondDate = new Date(date2);
+    const differenceOfValuesOf = firstDate.valueOf() - secondDate.valueOf();
+    const isFirstDateSmaller = differenceOfValuesOf < 0;
+    return isFirstDateSmaller;
   }
 }
 
