@@ -116,24 +116,42 @@ class EverythingDateRangePicker {
     this.firstDayOfWeek = options.firstDayOfWeek || "Monday";
 
     // Lets make the different checks for the dates
+    const isMinDateBigger = this.checkIfFirstDateBigger(
+      this.minDate,
+      this.startDate
+    );
+
+    if (isMinDateBigger) {
+      this.startDate = new Date(this.minDate);
+      this.currentStartDate = this.startDate;
+    }
+
     const isStartDateBigger = this.checkIfFirstDateBigger(
       this.startDate,
       this.endDate
     );
 
     if (isStartDateBigger) {
-      console.log("bigger");
-      this.startDate = new Date(this.endDate);
-      this.currentStartDate = this.startDate;
+      this.endDate = new Date(this.startDate);
+      this.currentEndDate = this.endDate;
     }
 
-    const isStartDateSmaller = this.checkIfFirstDateSmaller(
-      this.startDate,
-      this.endDate
+    const isEndDateBigger = this.checkIfFirstDateBigger(
+      this.endDate,
+      this.maxDate
     );
 
-    if (isStartDateSmaller) {
-      console.log("smaller");
+    if (isEndDateBigger) {
+      this.endDate = new Date(this.maxDate);
+      this.currentEndDate = this.endDate;
+    }
+
+    const isEndDateSmaller = this.checkIfFirstDateSmaller(
+      this.endDate,
+      this.startDate
+    );
+
+    if (isEndDateSmaller) {
       this.endDate = new Date(this.startDate);
       this.currentEndDate = this.endDate;
     }
@@ -148,17 +166,35 @@ class EverythingDateRangePicker {
   }
 
   initDatePicker() {
+    const {
+      startDateEqualsMinDate,
+      startDateEqualsMaxDate,
+      endDateEqualsMinDate,
+      endDateEqualsMaxDate,
+      startDateEqualsEndDate,
+    } = this.#checkDatesToRenderArrows();
+
+    const hideLeftCalendarPreviousArrow =
+      startDateEqualsMinDate ||
+      endDateEqualsMinDate ||
+      (startDateEqualsEndDate && this.singleCalendar);
+
+    const hideLeftCalendarNextArrow =
+      endDateEqualsMaxDate || startDateEqualsMaxDate || startDateEqualsEndDate;
+
     const singleCalendar = `
       <div class="calendar">
         <div style="display: flex; flex-direction: column; gap: 10px;">
           <div style="display: flex; justify-content: space-between;">
-            <div class="calendar-arrow left-calendar-previous-arrow">
-              <-
+            <div class="calendar-arrow left-calendar-previous-arrow"
+              ${hideLeftCalendarPreviousArrow ? 'style="display: none"' : ""}> 
+              <- 
             </div>
-            <div class="start-date-calendar-month">
+            <div class="start-date-calendar-month" style="flex: 1; text-align: center;">
             </div>
-            <div class="calendar-arrow left-calendar-next-arrow">
-              ->
+            <div class="calendar-arrow left-calendar-next-arrow"
+              ${hideLeftCalendarNextArrow ? 'style="display: none"' : ""}>
+              -> 
             </div>
           </div>
           <div class="start-date-calendar">
@@ -167,17 +203,24 @@ class EverythingDateRangePicker {
       </div>
     `;
 
+    const hideRightCalendarPreviousArrow =
+      endDateEqualsMinDate || startDateEqualsEndDate;
+
+    const hideRightCalendarNextArrow = endDateEqualsMaxDate;
+
     const doubleCalendar = `
       <div class="calendar">
         <div style="display: flex; flex-direction: column; gap: 10px;">
           <div style="display: flex; justify-content: space-between;">
-            <div class="calendar-arrow left-calendar-previous-arrow">
-              <-
+            <div class="calendar-arrow left-calendar-previous-arrow"
+              ${hideLeftCalendarPreviousArrow ? 'style="display: none"' : ""}> 
+              <- 
             </div>
-            <div class="start-date-calendar-month">
+            <div class="start-date-calendar-month" style="flex: 1; text-align: center;">
             </div>
-            <div class="calendar-arrow left-calendar-next-arrow">
-              ->
+            <div class="calendar-arrow left-calendar-next-arrow"
+              ${hideLeftCalendarNextArrow ? 'style="display: none"' : ""}>
+              -> 
             </div>
           </div>
           <div class="start-date-calendar">
@@ -187,12 +230,14 @@ class EverythingDateRangePicker {
       <div class="calendar">
         <div style="display: flex; flex-direction: column; gap: 10px;">
           <div style="display: flex; justify-content: space-between;">
-            <div class="calendar-arrow right-calendar-previous-arrow">
+            <div class="calendar-arrow right-calendar-previous-arrow"
+              ${hideRightCalendarPreviousArrow ? 'style="display: none"' : ""}>
               <-
             </div>
-            <div class="end-date-calendar-month">
+            <div class="end-date-calendar-month" style="flex: 1; text-align: center;">
             </div>
-            <div class="calendar-arrow right-calendar-next-arrow">
+            <div class="calendar-arrow right-calendar-next-arrow"
+              ${hideRightCalendarNextArrow ? 'style="display: none"' : ""}>
               ->
             </div>
           </div>
@@ -251,6 +296,7 @@ class EverythingDateRangePicker {
     // Add click event listener to the arrows to navigate the months
     const listOfCalendarArrows =
       this.container.querySelectorAll(".calendar-arrow");
+
     listOfCalendarArrows.forEach((calendarArrow) => {
       calendarArrow.addEventListener("click", (event) =>
         this.changeRenderedCalendar(event)
@@ -277,6 +323,11 @@ class EverythingDateRangePicker {
     }
   }
 
+  /**
+   * Method to change the rendered calendar of the clicked side, this method runs when the user clicks the
+   * arrows rendered on the calendars
+   * @param {Object} event The click object that contains the info of the event
+   */
   changeRenderedCalendar(event) {
     event.stopPropagation();
     const clickedArrow = event.target;
@@ -295,9 +346,9 @@ class EverythingDateRangePicker {
     let newDateToRender;
 
     if (isPreviousArrow) {
-      newDateToRender = new Date().setMonth(dateToUse.getMonth() - 1);
+      newDateToRender = new Date(dateToUse).setMonth(dateToUse.getMonth() - 1);
     } else {
-      newDateToRender = new Date().setMonth(dateToUse.getMonth() + 1);
+      newDateToRender = new Date(dateToUse).setMonth(dateToUse.getMonth() + 1);
     }
 
     newDateToRender = new Date(newDateToRender);
@@ -313,6 +364,85 @@ class EverythingDateRangePicker {
       isLeftCalendar ? "left" : "right"
     );
     calendarToUse.innerHTML = calendarHTML;
+
+    const {
+      startDateEqualsMinDate,
+      startDateEqualsMaxDate,
+      endDateEqualsMinDate,
+      endDateEqualsMaxDate,
+      startDateEqualsEndDate,
+    } = this.#checkDatesToRenderArrows();
+
+    // Cases when the clicked arrow is from the left calendar
+    if (isLeftCalendar) {
+      // Cases to disable arrows
+
+      /*
+        1st .- The user clicked the previous arrow and the start date equals the min date (hide 'previous' arrow)
+        The user clicked the next arrow:
+          2nd .- The start date equals the end date (hide 'next' arrow)
+          3rd .- The start date equals the max date (hide 'next' arrow)
+      */
+      if (
+        (isPreviousArrow && startDateEqualsMinDate) ||
+        (!isPreviousArrow && startDateEqualsEndDate) ||
+        (!isPreviousArrow && startDateEqualsMaxDate)
+      ) {
+        clickedArrow.style.display = "none";
+      }
+
+      // Cases to enable arrows
+
+      // The user clicked the previous arrow (enables the 'next' arrow)
+      if (isPreviousArrow) {
+        const nextArrow = this.calendarContainer.querySelector(
+          ".left-calendar-next-arrow"
+        );
+        nextArrow.style.display = "block";
+      }
+
+      if (!isPreviousArrow) {
+        const previousArrow = this.calendarContainer.querySelector(
+          ".left-calendar-previous-arrow"
+        );
+        previousArrow.style.display = "block";
+      }
+    }
+
+    // Cases when the clicked arrow is from the right calendar
+    if (!isLeftCalendar) {
+      // Cases to disable arrows
+
+      /*
+        1st .- The user clicked the previous arrow and the end date equals the min date (hide 'previous' arrow)
+        2nd .- The user clicked the previous arrow and the end date equals the start date (hide 'previous' arrow)
+        3rd .- The user clicked the next arrow the end date equals the max date (hide 'next' arrow)
+      */
+      if (
+        (isPreviousArrow && endDateEqualsMinDate) ||
+        (isPreviousArrow && startDateEqualsEndDate) ||
+        (!isPreviousArrow && endDateEqualsMaxDate)
+      ) {
+        clickedArrow.style.display = "none";
+      }
+
+      // Cases to enable arrows
+
+      // The user clicked the previous arrow (enables the 'next' arrow)
+      if (isPreviousArrow) {
+        const nextArrow = this.calendarContainer.querySelector(
+          ".right-calendar-next-arrow"
+        );
+        nextArrow.style.display = "block";
+      }
+
+      if (!isPreviousArrow) {
+        const previousArrow = this.calendarContainer.querySelector(
+          ".right-calendar-previous-arrow"
+        );
+        previousArrow.style.display = "block";
+      }
+    }
   }
 
   /**
@@ -342,10 +472,6 @@ class EverythingDateRangePicker {
     for (let i = 0; i < this.#defaultRanges.length; i++) {
       let range = this.#defaultRanges[i];
       listOfRangesHTML += `<li>${range.label}</li>`;
-
-      console.log(`-------${range.label}--------`);
-      console.log(`startDate: `, range.startDate);
-      console.log(`endDate: `, range.endDate);
     }
 
     listOfRangesHTML += `</ul>`;
@@ -359,8 +485,7 @@ class EverythingDateRangePicker {
    * @returns The HTML of the calendar
    */
   #generateCalendar(date, sideOfCalendar) {
-    const month = date.getMonth();
-    const monthName = this.#monthsStrings[month];
+    const granularity = "month";
     let firstDayOfMonthInWeek = new Date(date);
     firstDayOfMonthInWeek = new Date(firstDayOfMonthInWeek.setDate(1)).getDay();
     let lastDayOfMonth = new Date(date);
@@ -445,9 +570,11 @@ class EverythingDateRangePicker {
     }
 
     if (sideOfCalendar === "left") {
-      this.#startCalendarMonth.innerHTML = monthName;
+      const titleOfCalendar = this.#generateTitleOfCalendar(granularity, date);
+      this.#startCalendarMonth.innerHTML = titleOfCalendar;
     } else {
-      this.#endCalendarMonth.innerHTML = monthName;
+      const titleOfCalendar = this.#generateTitleOfCalendar(granularity, date);
+      this.#endCalendarMonth.innerHTML = titleOfCalendar;
     }
 
     let calendarHTML = `
@@ -467,15 +594,44 @@ class EverythingDateRangePicker {
   }
 
   /**
+   * Method that takes care of generating the title of the rendered calendar
+   * @param {String} granularity The granularity that is currently rendering the calendar
+   * @param {Object} date The date object
+   * @returns {String} The formatted text that is going to be displayed as the title of the
+   * rendered calendar
+   */
+  #generateTitleOfCalendar(granularity, date) {
+    let titleOfCalendar = "";
+
+    switch (granularity) {
+      case "month": {
+        const month = date.getMonth();
+        const monthName = this.#monthsStrings[month];
+        const year = date.getFullYear();
+        titleOfCalendar = `${monthName} ${year}`;
+        break;
+      }
+    }
+
+    return titleOfCalendar;
+  }
+
+  /**
    * Method to check if the first date sent as parameter is bigger than the second one
    * @param {Object} date1 First date to compare
    * @param {Object} date2 Second date to compare
    * @returns {Boolean} Indicates if the first date is bigger
    */
   checkIfFirstDateBigger(date1, date2) {
+    if (!date1 || !date2) {
+      return false;
+    }
+
     const firstDate = new Date(date1);
     const secondDate = new Date(date2);
+
     const differenceOfValuesOf = firstDate.valueOf() - secondDate.valueOf();
+
     const isFirstDateBigger = differenceOfValuesOf > 0;
     return isFirstDateBigger;
   }
@@ -487,11 +643,103 @@ class EverythingDateRangePicker {
    * @returns {Boolean} Indicates if the first date is smaller
    */
   checkIfFirstDateSmaller(date1, date2) {
+    if (!date1 || !date2) {
+      return false;
+    }
+
     const firstDate = new Date(date1);
     const secondDate = new Date(date2);
     const differenceOfValuesOf = firstDate.valueOf() - secondDate.valueOf();
     const isFirstDateSmaller = differenceOfValuesOf < 0;
     return isFirstDateSmaller;
+  }
+
+  /**
+   * Method that takes care of checking different operations with the dates in order
+   * to know of the arrows have to be hidden or shown
+   * @returns {Object} Object with different booleans checking different dates checks
+   */
+  #checkDatesToRenderArrows() {
+    let startDateEqualsMinDate = false;
+    let startDateEqualsMaxDate = false;
+    let endDateEqualsMinDate = false;
+    let endDateEqualsMaxDate = false;
+    let startDateEqualsEndDate = false;
+    const granularity = "month";
+
+    if (this.minDate) {
+      startDateEqualsMinDate = this.checkIfDatesEqualsBasedInGranularity(
+        this.currentStartDate,
+        this.minDate,
+        granularity
+      );
+
+      if (this.currentEndDate && !this.singleCalendar) {
+        endDateEqualsMinDate = this.checkIfDatesEqualsBasedInGranularity(
+          this.currentEndDate,
+          this.minDate,
+          granularity
+        );
+      }
+    }
+
+    if (this.maxDate) {
+      startDateEqualsMaxDate = this.checkIfDatesEqualsBasedInGranularity(
+        this.currentStartDate,
+        this.maxDate,
+        granularity
+      );
+
+      if (this.currentEndDate && !this.singleCalendar) {
+        endDateEqualsMaxDate = this.checkIfDatesEqualsBasedInGranularity(
+          this.currentEndDate,
+          this.maxDate,
+          granularity
+        );
+      }
+    }
+
+    if (this.currentEndDate && !this.singleCalendar) {
+      startDateEqualsEndDate = this.checkIfDatesEqualsBasedInGranularity(
+        this.currentStartDate,
+        this.currentEndDate,
+        granularity
+      );
+    }
+
+    return {
+      startDateEqualsMinDate,
+      startDateEqualsMaxDate,
+      endDateEqualsMinDate,
+      endDateEqualsMaxDate,
+      startDateEqualsEndDate,
+    };
+  }
+
+  /**
+   * Method that takes care of checking if the dates sent are equals based in the selected
+   * granularity
+   * @param {Object} firstDate First date to compare
+   * @param {Object} secondDate Second date to compare
+   * @param {String} granularity The granularity that is currently rendering the calendar
+   * @returns {Boolean} Indicates if the dates are equals
+   */
+  checkIfDatesEqualsBasedInGranularity(firstDate, secondDate, granularity) {
+    let areDateEquals = false;
+
+    switch (granularity) {
+      case "month": {
+        const sameMonth = firstDate.getMonth() === secondDate.getMonth();
+        const sameYear = firstDate.getFullYear() === secondDate.getFullYear();
+
+        if (sameMonth && sameYear) {
+          areDateEquals = true;
+        }
+        break;
+      }
+    }
+
+    return areDateEquals;
   }
 }
 
