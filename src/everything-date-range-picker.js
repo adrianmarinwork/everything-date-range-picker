@@ -2,77 +2,77 @@
 
 class EverythingDateRangePicker {
   #defaultRanges = [
-    { label: "Today", startDate: new Date(), endDate: new Date() },
+    { label: 'Today', startDate: new Date(), endDate: new Date() },
     {
-      label: "Yesterday",
+      label: 'Yesterday',
       startDate: new Date(new Date().setDate(new Date().getDate() - 1)),
       endDate: new Date(new Date().setDate(new Date().getDate() - 1)),
     },
     {
-      label: "Last 7 Days",
+      label: 'Last 7 Days',
       startDate: new Date(new Date().setDate(new Date().getDate() - 6)),
       endDate: new Date(),
     },
     {
-      label: "Last 30 Days",
+      label: 'Last 30 Days',
       startDate: new Date(new Date().setDate(new Date().getDate() - 29)),
       endDate: new Date(),
     },
     {
-      label: "This Week",
+      label: 'This Week',
       startDate: new Date(new Date().setDate(new Date().getDay())),
       endDate: new Date(),
     },
     {
-      label: "Last Week",
+      label: 'Last Week',
       startDate: new Date(new Date().setDate(new Date().getDate() - 7)),
       endDate: new Date(new Date().setDate(new Date().getDate() - 14)),
     },
     {
-      label: "This Month",
+      label: 'This Month',
       startDate: new Date(new Date().getFullYear(), new Date().getMonth()),
       endDate: new Date(),
     },
     {
-      label: "Last Month",
+      label: 'Last Month',
       startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 1),
       endDate: new Date(new Date().getFullYear(), new Date().getMonth()),
     },
     {
-      label: "Year to Date",
+      label: 'Year to Date',
       startDate: new Date(new Date().getFullYear(), 0),
       endDate: new Date(),
     },
     {
-      label: "Last Year",
+      label: 'Last Year',
       startDate: new Date(new Date().getFullYear() - 1, 0),
       endDate: new Date(new Date().getFullYear() - 1, 11),
     },
   ];
 
   #granularitiesAvailable = [
-    "hours",
-    "days",
-    "weeks",
-    "months",
-    "quarters",
-    "semesters",
-    "years",
+    'hours',
+    'days',
+    'weeks',
+    'months',
+    'quarters',
+    'semesters',
+    'years',
   ];
 
   #monthsStrings = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   #dayOfWeekNumberRelationObj = {
@@ -91,29 +91,29 @@ class EverythingDateRangePicker {
   constructor(containerId, options = {}) {
     this.container = document.getElementById(containerId);
 
-    console.log("containerId: ", containerId);
-    console.log("this.container: ", this.container);
-    console.log("options: ", options);
+    console.log('containerId: ', containerId);
+    console.log('this.container: ', this.container);
+    console.log('options: ', options);
 
     this.startDate =
       options.startDate || new Date(new Date().setHours(0, 0, 0, 0));
-    this.#checkValidityOfDataType("startDate");
+    this.#checkValidityOfDateType('startDate');
     this.currentStartDate = this.startDate;
     this.endDate =
       options.endDate || new Date(new Date().setHours(23, 59, 59, 999));
-    this.#checkValidityOfDataType("endDate");
+    this.#checkValidityOfDateType('endDate');
     this.currentEndDate = this.endDate;
     this.minDate = options.minDate || null;
-    this.#checkValidityOfDataType("minDate");
+    this.#checkValidityOfDateType('minDate');
     this.maxDate = options.maxDate || null;
-    this.#checkValidityOfDataType("maxDate");
+    this.#checkValidityOfDateType('maxDate');
     this.timezone = options.timezone || null;
     this.showTimezoneChooser = options.showTimezoneChooser || false;
-    this.granularity = options.granularity || "hours";
+    this.granularity = options.granularity || 'hours';
     this.singleCalendar = options.singleCalendar || false;
     this.ranges = options.ranges || this.#defaultRanges;
     this.spanOfSelecteableDays = options.spanOfSelecteableDays || null;
-    this.firstDayOfWeek = options.firstDayOfWeek || "Monday";
+    this.firstDayOfWeek = options.firstDayOfWeek || 'Monday';
 
     // Lets make the different checks for the dates
     const isMinDateBigger = this.checkIfFirstDateBigger(
@@ -159,8 +159,8 @@ class EverythingDateRangePicker {
     this.initDatePicker();
   }
 
-  #checkValidityOfDataType(property) {
-    if (typeof this[property] === "string") {
+  #checkValidityOfDateType(property) {
+    if (typeof this[property] === 'string') {
       this[property] = new Date(this[property]);
     }
   }
@@ -184,16 +184,16 @@ class EverythingDateRangePicker {
 
     const singleCalendar = `
       <div class="calendar">
-        <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
           <div style="display: flex; justify-content: space-between;">
             <div class="calendar-arrow left-calendar-previous-arrow"
-              ${hideLeftCalendarPreviousArrow ? 'style="display: none"' : ""}> 
+              ${hideLeftCalendarPreviousArrow ? 'style="display: none"' : ''}> 
               <- 
             </div>
             <div class="start-date-calendar-month" style="flex: 1; text-align: center;">
             </div>
             <div class="calendar-arrow left-calendar-next-arrow"
-              ${hideLeftCalendarNextArrow ? 'style="display: none"' : ""}>
+              ${hideLeftCalendarNextArrow ? 'style="display: none"' : ''}>
               -> 
             </div>
           </div>
@@ -210,16 +210,16 @@ class EverythingDateRangePicker {
 
     const doubleCalendar = `
       <div class="calendar">
-        <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
           <div style="display: flex; justify-content: space-between;">
             <div class="calendar-arrow left-calendar-previous-arrow"
-              ${hideLeftCalendarPreviousArrow ? 'style="display: none"' : ""}> 
+              ${hideLeftCalendarPreviousArrow ? 'style="display: none"' : ''}> 
               <- 
             </div>
             <div class="start-date-calendar-month" style="flex: 1; text-align: center;">
             </div>
             <div class="calendar-arrow left-calendar-next-arrow"
-              ${hideLeftCalendarNextArrow ? 'style="display: none"' : ""}>
+              ${hideLeftCalendarNextArrow ? 'style="display: none"' : ''}>
               -> 
             </div>
           </div>
@@ -228,16 +228,16 @@ class EverythingDateRangePicker {
         </div>
       </div>
       <div class="calendar">
-        <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
           <div style="display: flex; justify-content: space-between;">
             <div class="calendar-arrow right-calendar-previous-arrow"
-              ${hideRightCalendarPreviousArrow ? 'style="display: none"' : ""}>
+              ${hideRightCalendarPreviousArrow ? 'style="display: none"' : ''}>
               <-
             </div>
             <div class="end-date-calendar-month" style="flex: 1; text-align: center;">
             </div>
             <div class="calendar-arrow right-calendar-next-arrow"
-              ${hideRightCalendarNextArrow ? 'style="display: none"' : ""}>
+              ${hideRightCalendarNextArrow ? 'style="display: none"' : ''}>
               ->
             </div>
           </div>
@@ -261,44 +261,44 @@ class EverythingDateRangePicker {
       </div>
     `;
 
-    this.display = this.container.querySelector(".date-range-picker-display");
+    this.display = this.container.querySelector('.date-range-picker-display');
     this.calendarContainer = this.container.querySelector(
-      ".date-range-picker-calendar-container"
+      '.date-range-picker-calendar-container'
     );
 
-    this.selectedDatesElement = this.container.querySelector(".selected-dates");
+    this.selectedDatesElement = this.container.querySelector('.selected-dates');
 
-    this.startCalendar = this.container.querySelector(".start-date-calendar");
+    this.startCalendar = this.container.querySelector('.start-date-calendar');
     this.#startCalendarMonth = this.container.querySelector(
-      ".start-date-calendar-month"
+      '.start-date-calendar-month'
     );
 
     // If the singleCalendar boolean is true we render only the start calendar
     if (this.singleCalendar) {
       this.populateStartCalendar();
     } else {
-      this.endCalendar = this.container.querySelector(".end-date-calendar");
+      this.endCalendar = this.container.querySelector('.end-date-calendar');
       this.#endCalendarMonth = this.container.querySelector(
-        ".end-date-calendar-month"
+        '.end-date-calendar-month'
       );
-      this.rangesContainer = this.container.querySelector(".ranges-container");
+      this.rangesContainer = this.container.querySelector('.ranges-container');
 
       this.populateStartCalendar();
       this.populateEndCalendar();
       this.populateRangesContainer();
     }
 
-    this.display.addEventListener("click", () => this.toggleCalendar());
-    document.addEventListener("click", (event) =>
+    this.display.addEventListener('click', () => this.toggleCalendar());
+    document.addEventListener('click', (event) =>
       this.documentClickHandler(event)
     );
 
     // Add click event listener to the arrows to navigate the months
     const listOfCalendarArrows =
-      this.container.querySelectorAll(".calendar-arrow");
+      this.container.querySelectorAll('.calendar-arrow');
 
     listOfCalendarArrows.forEach((calendarArrow) => {
-      calendarArrow.addEventListener("click", (event) =>
+      calendarArrow.addEventListener('click', (event) =>
         this.changeRenderedCalendar(event)
       );
     });
@@ -310,7 +310,7 @@ class EverythingDateRangePicker {
   toggleCalendar() {
     const currentDisplay = this.calendarContainer.style.display;
     this.calendarContainer.style.display =
-      currentDisplay === "flex" ? "none" : "flex";
+      currentDisplay === 'flex' ? 'none' : 'flex';
   }
 
   /**
@@ -319,7 +319,7 @@ class EverythingDateRangePicker {
    */
   documentClickHandler(event) {
     if (!this.container.contains(event.target)) {
-      this.calendarContainer.style.display = "none";
+      this.calendarContainer.style.display = 'none';
     }
   }
 
@@ -331,8 +331,8 @@ class EverythingDateRangePicker {
   changeRenderedCalendar(event) {
     event.stopPropagation();
     const clickedArrow = event.target;
-    const isLeftCalendar = clickedArrow.className.includes("left");
-    const isPreviousArrow = clickedArrow.className.includes("previous");
+    const isLeftCalendar = clickedArrow.className.includes('left');
+    const isPreviousArrow = clickedArrow.className.includes('previous');
 
     let dateToUse = this.currentStartDate;
     let calendarToUse = this.startCalendar;
@@ -361,7 +361,7 @@ class EverythingDateRangePicker {
 
     let calendarHTML = this.#generateCalendar(
       newDateToRender,
-      isLeftCalendar ? "left" : "right"
+      isLeftCalendar ? 'left' : 'right'
     );
     calendarToUse.innerHTML = calendarHTML;
 
@@ -388,7 +388,7 @@ class EverythingDateRangePicker {
         (!isPreviousArrow && startDateEqualsEndDate) ||
         (!isPreviousArrow && startDateEqualsMaxDate)
       ) {
-        clickedArrow.style.display = "none";
+        clickedArrow.style.display = 'none';
       }
 
       // Cases to enable arrows
@@ -396,16 +396,16 @@ class EverythingDateRangePicker {
       // The user clicked the previous arrow (enables the 'next' arrow)
       if (isPreviousArrow) {
         const nextArrow = this.calendarContainer.querySelector(
-          ".left-calendar-next-arrow"
+          '.left-calendar-next-arrow'
         );
-        nextArrow.style.display = "block";
+        nextArrow.style.display = 'block';
       }
 
       if (!isPreviousArrow) {
         const previousArrow = this.calendarContainer.querySelector(
-          ".left-calendar-previous-arrow"
+          '.left-calendar-previous-arrow'
         );
-        previousArrow.style.display = "block";
+        previousArrow.style.display = 'block';
       }
     }
 
@@ -423,7 +423,7 @@ class EverythingDateRangePicker {
         (isPreviousArrow && startDateEqualsEndDate) ||
         (!isPreviousArrow && endDateEqualsMaxDate)
       ) {
-        clickedArrow.style.display = "none";
+        clickedArrow.style.display = 'none';
       }
 
       // Cases to enable arrows
@@ -431,16 +431,16 @@ class EverythingDateRangePicker {
       // The user clicked the previous arrow (enables the 'next' arrow)
       if (isPreviousArrow) {
         const nextArrow = this.calendarContainer.querySelector(
-          ".right-calendar-next-arrow"
+          '.right-calendar-next-arrow'
         );
-        nextArrow.style.display = "block";
+        nextArrow.style.display = 'block';
       }
 
       if (!isPreviousArrow) {
         const previousArrow = this.calendarContainer.querySelector(
-          ".right-calendar-previous-arrow"
+          '.right-calendar-previous-arrow'
         );
-        previousArrow.style.display = "block";
+        previousArrow.style.display = 'block';
       }
     }
   }
@@ -450,7 +450,7 @@ class EverythingDateRangePicker {
    */
   populateStartCalendar() {
     const startDate = this.startDate;
-    let calendarHTML = this.#generateCalendar(startDate, "left");
+    let calendarHTML = this.#generateCalendar(startDate, 'left');
     this.startCalendar.innerHTML = calendarHTML;
   }
 
@@ -459,7 +459,7 @@ class EverythingDateRangePicker {
    */
   populateEndCalendar() {
     const endDate = this.endDate;
-    let calendarHTML = this.#generateCalendar(endDate, "right");
+    let calendarHTML = this.#generateCalendar(endDate, 'right');
     this.endCalendar.innerHTML = calendarHTML;
   }
 
@@ -485,7 +485,7 @@ class EverythingDateRangePicker {
    * @returns The HTML of the calendar
    */
   #generateCalendar(date, sideOfCalendar) {
-    const granularity = "month";
+    const granularity = 'month';
     let firstDayOfMonthInWeek = new Date(date);
     firstDayOfMonthInWeek = new Date(firstDayOfMonthInWeek.setDate(1)).getDay();
     let lastDayOfMonth = new Date(date);
@@ -541,7 +541,7 @@ class EverythingDateRangePicker {
     weeksOfMonth.push(daysOfWeek);
 
     // Let's generate the days of the week for the table header
-    const normalOrderOfDays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+    const normalOrderOfDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
     let tableHeaderDaysHTML = ``;
     let counter = 0;
     let indexToGetDayOfWeek = indexOfFirstDayOfWeek;
@@ -563,13 +563,13 @@ class EverythingDateRangePicker {
       let week = weeksOfMonth[i];
       tableDaysHTML += `<tr>`;
       for (let j = 0; j < week.length; j++) {
-        let day = week[j] || "";
+        let day = week[j] || '';
         tableDaysHTML += `<td>${day}</td>`;
       }
       tableDaysHTML += `</tr>`;
     }
 
-    if (sideOfCalendar === "left") {
+    if (sideOfCalendar === 'left') {
       const titleOfCalendar = this.#generateTitleOfCalendar(granularity, date);
       this.#startCalendarMonth.innerHTML = titleOfCalendar;
     } else {
@@ -601,10 +601,10 @@ class EverythingDateRangePicker {
    * rendered calendar
    */
   #generateTitleOfCalendar(granularity, date) {
-    let titleOfCalendar = "";
+    let titleOfCalendar = '';
 
     switch (granularity) {
-      case "month": {
+      case 'month': {
         const month = date.getMonth();
         const monthName = this.#monthsStrings[month];
         const year = date.getFullYear();
@@ -665,7 +665,7 @@ class EverythingDateRangePicker {
     let endDateEqualsMinDate = false;
     let endDateEqualsMaxDate = false;
     let startDateEqualsEndDate = false;
-    const granularity = "month";
+    const granularity = 'month';
 
     if (this.minDate) {
       startDateEqualsMinDate = this.checkIfDatesEqualsBasedInGranularity(
@@ -728,7 +728,7 @@ class EverythingDateRangePicker {
     let areDateEquals = false;
 
     switch (granularity) {
-      case "month": {
+      case 'month': {
         const sameMonth = firstDate.getMonth() === secondDate.getMonth();
         const sameYear = firstDate.getFullYear() === secondDate.getFullYear();
 
