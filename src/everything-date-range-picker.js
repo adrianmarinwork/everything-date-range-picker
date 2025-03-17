@@ -2,51 +2,94 @@
 
 class EverythingDateRangePicker {
   #defaultRanges = [
-    { label: 'Today', startDate: new Date(), endDate: new Date() },
+    {
+      label: 'Today',
+      startDate: new Date(new Date().setHours(0, 0)),
+      endDate: new Date(),
+    },
     {
       label: 'Yesterday',
-      startDate: new Date(new Date().setDate(new Date().getDate() - 1)),
-      endDate: new Date(new Date().setDate(new Date().getDate() - 1)),
+      startDate: new Date(
+        new Date(new Date().setDate(new Date().getDate() - 1)).setHours(0, 0)
+      ),
+      endDate: new Date(
+        new Date(new Date().setDate(new Date().getDate() - 1)).setHours(23, 59)
+      ),
     },
     {
       label: 'Last 7 Days',
-      startDate: new Date(new Date().setDate(new Date().getDate() - 6)),
+      startDate: new Date(
+        new Date(new Date().setDate(new Date().getDate() - 6)).setHours(0, 0)
+      ),
       endDate: new Date(),
     },
     {
       label: 'Last 30 Days',
-      startDate: new Date(new Date().setDate(new Date().getDate() - 29)),
+      startDate: new Date(
+        new Date(new Date().setDate(new Date().getDate() - 29)).setHours(0, 0)
+      ),
       endDate: new Date(),
     },
     {
       label: 'This Week',
-      startDate: new Date(new Date().setDate(new Date().getDay())),
+      startDate: new Date(
+        new Date(
+          new Date().setDate(new Date().getDate() - new Date().getDay() + 1)
+        ).setHours(0, 0, 0, 0)
+      ),
       endDate: new Date(),
     },
     {
       label: 'Last Week',
-      startDate: new Date(new Date().setDate(new Date().getDate() - 7)),
-      endDate: new Date(new Date().setDate(new Date().getDate() - 14)),
+      startDate: new Date(
+        new Date(
+          new Date().setDate(new Date().getDate() - new Date().getDay() - 6)
+        ).setHours(0, 0, 0, 0)
+      ),
+      endDate: new Date(
+        new Date(
+          new Date().setDate(new Date().getDate() - new Date().getDay())
+        ).setHours(23, 59, 59, 999)
+      ),
     },
     {
       label: 'This Month',
-      startDate: new Date(new Date().getFullYear(), new Date().getMonth()),
+      startDate: new Date(
+        new Date(new Date().getFullYear(), new Date().getMonth()).setHours(0, 0)
+      ),
       endDate: new Date(),
     },
     {
       label: 'Last Month',
-      startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 1),
-      endDate: new Date(new Date().getFullYear(), new Date().getMonth()),
+      startDate: new Date(
+        new Date(new Date().getFullYear(), new Date().getMonth() - 1).setHours(
+          0,
+          0
+        )
+      ),
+      endDate: new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        0,
+        23,
+        59,
+        59,
+        999
+      ),
     },
     {
       label: 'Year to Date',
-      startDate: new Date(new Date().getFullYear(), 0),
+      startDate: new Date(new Date(new Date().getFullYear(), 0).setHours(0, 0)),
       endDate: new Date(),
     },
     {
       label: 'Last Year',
-      startDate: new Date(new Date().getFullYear() - 1, 0),
-      endDate: new Date(new Date().getFullYear() - 1, 11),
+      startDate: new Date(
+        new Date(new Date().getFullYear() - 1, 0).setHours(0, 0)
+      ),
+      endDate: new Date(
+        new Date(new Date().getFullYear() - 1, 11).setHours(23, 59)
+      ),
     },
   ];
 
@@ -87,6 +130,7 @@ class EverythingDateRangePicker {
 
   #startCalendarMonth;
   #endCalendarMonth;
+  #timesClickedDate = 0;
 
   constructor(containerId, options = {}) {
     this.container = document.getElementById(containerId);
@@ -99,10 +143,12 @@ class EverythingDateRangePicker {
       options.startDate || new Date(new Date().setHours(0, 0, 0, 0));
     this.#checkValidityOfDateType('startDate');
     this.currentStartDate = this.startDate;
+    this.selectedStartDate = this.startDate;
     this.endDate =
       options.endDate || new Date(new Date().setHours(23, 59, 59, 999));
     this.#checkValidityOfDateType('endDate');
     this.currentEndDate = this.endDate;
+    this.selectedEndDate = this.endDate;
     this.minDate = options.minDate || null;
     this.#checkValidityOfDateType('minDate');
     this.maxDate = options.maxDate || null;
@@ -124,6 +170,7 @@ class EverythingDateRangePicker {
     if (isMinDateBigger) {
       this.startDate = new Date(this.minDate);
       this.currentStartDate = this.startDate;
+      this.selectedStartDate = this.startDate;
     }
 
     const isStartDateBigger = this.checkIfFirstDateBigger(
@@ -134,6 +181,7 @@ class EverythingDateRangePicker {
     if (isStartDateBigger) {
       this.endDate = new Date(this.startDate);
       this.currentEndDate = this.endDate;
+      this.selectedEndDate = this.endDate;
     }
 
     const isEndDateBigger = this.checkIfFirstDateBigger(
@@ -144,6 +192,7 @@ class EverythingDateRangePicker {
     if (isEndDateBigger) {
       this.endDate = new Date(this.maxDate);
       this.currentEndDate = this.endDate;
+      this.selectedEndDate = this.endDate;
     }
 
     const isEndDateSmaller = this.checkIfFirstDateSmaller(
@@ -154,6 +203,7 @@ class EverythingDateRangePicker {
     if (isEndDateSmaller) {
       this.endDate = new Date(this.startDate);
       this.currentEndDate = this.endDate;
+      this.selectedEndDate = this.endDate;
     }
 
     this.initDatePicker();
@@ -359,11 +409,10 @@ class EverythingDateRangePicker {
       this.currentEndDate = new Date(newDateToRender);
     }
 
-    let calendarHTML = this.#generateCalendar(
-      newDateToRender,
-      isLeftCalendar ? 'left' : 'right'
-    );
+    const calendarSide = isLeftCalendar ? 'left' : 'right';
+    const calendarHTML = this.#generateCalendar(newDateToRender, calendarSide);
     calendarToUse.innerHTML = calendarHTML;
+    this.#attachClickCellEvent(calendarToUse);
 
     const {
       startDateEqualsMinDate,
@@ -446,12 +495,104 @@ class EverythingDateRangePicker {
   }
 
   /**
+   * Method that takes care of attaching the click event to the cells in the calendar
+   * that contains the dates
+   * @param {Object} calendarElement The DOM element of the calendar
+   */
+  #attachClickCellEvent(calendarElement) {
+    const listOfDateCells = calendarElement.querySelectorAll(
+      '.calendar-clickable-cell'
+    );
+
+    const clickEventFnct = (event) => this.saveClickedDate(event);
+
+    listOfDateCells.forEach((dateCell) => {
+      dateCell.addEventListener('click', clickEventFnct);
+    });
+  }
+
+  /**
+   * Method that takes care of saving the clicked date, this method runs when the user clicks
+   * a cell containing a date
+   * @param {Object} event The click object that contains the info of the event
+   */
+  saveClickedDate(event) {
+    const dateClicked = event.target.getAttribute('data-value');
+
+    console.log('this: ', this);
+    console.log('this.#timesClickedDate: ', this.#timesClickedDate);
+
+    if (this.singleCalendar || this.#timesClickedDate === 0) {
+      this.selectedStartDate = new Date(dateClicked);
+      this.#timesClickedDate = 1;
+      return;
+    }
+
+    this.selectedEndDate = new Date(dateClicked);
+    this.#timesClickedDate = 0;
+  }
+
+  getSelectedDates(dontFormatDates) {
+    let dates = {};
+
+    if (dontFormatDates) {
+      dates.start = this.selectedStartDate;
+
+      if (!this.singleCalendar) {
+        dates.end = this.selectedEndDate;
+      }
+
+      return dates;
+    }
+
+    dates.start = this.getDateFormatedByGranularity(this.selectedStartDate);
+
+    if (!this.singleCalendar) {
+      dates.end = this.getDateFormatedByGranularity(this.selectedEndDate);
+    }
+
+    return dates;
+  }
+
+  getDateFormatedByGranularity(date) {
+    const granularity = this.granularity;
+    const day = this.#verifyDateElementHasTwoDigits(date.getDate());
+    const month = this.#verifyDateElementHasTwoDigits(date.getMonth() + 1);
+    const year = date.getFullYear();
+    const hours = this.#verifyDateElementHasTwoDigits(date.getHours());
+    const minutes = this.#verifyDateElementHasTwoDigits(date.getMinutes());
+    let formattedDate = '';
+
+    switch (granularity) {
+      case 'hours':
+        formattedDate = `${year}-${month}-${day} ${hours}:${minutes}`;
+        break;
+      case 'days':
+        formattedDate = `${year}-${month}-${day}`;
+        break;
+      case 'months':
+        formattedDate = `${year}-${month}`;
+        break;
+      case 'years':
+        formattedDate = `${year}`;
+        break;
+    }
+
+    return formattedDate;
+  }
+
+  #verifyDateElementHasTwoDigits(dateElement) {
+    return ('' + dateElement).length === 1 ? `0${dateElement}` : dateElement;
+  }
+
+  /**
    * Method that takes care of populate the start calendar with the start date
    */
   populateStartCalendar() {
     const startDate = this.startDate;
-    let calendarHTML = this.#generateCalendar(startDate, 'left');
+    const calendarHTML = this.#generateCalendar(startDate, 'left');
     this.startCalendar.innerHTML = calendarHTML;
+    this.#attachClickCellEvent(this.startCalendar);
   }
 
   /**
@@ -459,23 +600,57 @@ class EverythingDateRangePicker {
    */
   populateEndCalendar() {
     const endDate = this.endDate;
-    let calendarHTML = this.#generateCalendar(endDate, 'right');
+    const calendarHTML = this.#generateCalendar(endDate, 'right');
     this.endCalendar.innerHTML = calendarHTML;
+    this.#attachClickCellEvent(this.endCalendar);
   }
 
   /**
    * Method that takes care of populate the ranges
    */
   populateRangesContainer() {
-    let listOfRangesHTML = `<ul>`;
+    let listOfRangesHTML = `<ul class="calendar-ranges-list">`;
 
     for (let i = 0; i < this.#defaultRanges.length; i++) {
       let range = this.#defaultRanges[i];
-      listOfRangesHTML += `<li>${range.label}</li>`;
+      listOfRangesHTML += `<li class="calendar-ranges-list-element">${range.label}</li>`;
     }
 
     listOfRangesHTML += `</ul>`;
     this.rangesContainer.innerHTML = listOfRangesHTML;
+
+    const listElements = this.rangesContainer.querySelectorAll(
+      '.calendar-ranges-list-element'
+    );
+
+    listElements.forEach((listElement) =>
+      listElement.addEventListener('click', (event) =>
+        this.clickRangeListElementEvent(event)
+      )
+    );
+  }
+
+  clickRangeListElementEvent(event) {
+    const listRangeElement = event.target;
+    const rangeText = listRangeElement.innerText;
+    const rangeObj = this.ranges.find((range) => range.label === rangeText);
+
+    if (!rangeObj) {
+      return;
+    }
+
+    this.startDate = rangeObj.startDate;
+    this.currentStartDate = rangeObj.startDate;
+    this.selectedStartDate = rangeObj.startDate;
+
+    this.endDate = rangeObj.endDate;
+    this.currentEndDate = rangeObj.endDate;
+    this.selectedEndDate = rangeObj.endDate;
+
+    this.#timesClickedDate = 0;
+
+    this.populateStartCalendar();
+    this.populateEndCalendar();
   }
 
   /**
@@ -559,21 +734,29 @@ class EverythingDateRangePicker {
 
     let tableDaysHTML = ``;
 
+    const month = new Date(date).getMonth() + 1;
+    const year = new Date(date).getFullYear();
+
     for (let i = 0; i < weeksOfMonth.length; i++) {
-      let week = weeksOfMonth[i];
+      const week = weeksOfMonth[i];
       tableDaysHTML += `<tr>`;
+
       for (let j = 0; j < week.length; j++) {
-        let day = week[j] || '';
-        tableDaysHTML += `<td>${day}</td>`;
+        const day = week[j] || '';
+        const dateValue = `${year}-${month}-${day}`;
+        const attributesToAdd = day
+          ? `class="calendar-clickable-cell" data-value="${dateValue}"`
+          : '';
+
+        tableDaysHTML += `<td ${attributesToAdd}>${day}</td>`;
       }
       tableDaysHTML += `</tr>`;
     }
 
+    const titleOfCalendar = this.#generateTitleOfCalendar(granularity, date);
     if (sideOfCalendar === 'left') {
-      const titleOfCalendar = this.#generateTitleOfCalendar(granularity, date);
       this.#startCalendarMonth.innerHTML = titleOfCalendar;
     } else {
-      const titleOfCalendar = this.#generateTitleOfCalendar(granularity, date);
       this.#endCalendarMonth.innerHTML = titleOfCalendar;
     }
 
