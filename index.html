@@ -7,7 +7,9 @@
     <link rel="stylesheet" href="src/everything-date-range-picker.css" />
   </head>
   <body>
-    <h1>My datepicker</h1>
+    <button id="getDatesBtn" type="button">Get Dates</button>
+    <p id="startDate"></p>
+    <p id="endDate"></p>
     <div id="datePickerContainer"></div>
     <script src="src/everything-date-range-picker.js"></script>
     <script>
@@ -24,6 +26,16 @@
         );
 
         console.log('My Start Date: ', datePicker.startDate);
+
+        const getDatesBtn = document.getElementById('getDatesBtn');
+        getDatesBtn.addEventListener('click', (event) => {
+          const dates = datePicker.getSelectedDates();
+          console.log('dates: ', dates);
+          document.getElementById(
+            'startDate'
+          ).innerText = `Start: ${dates.start}`;
+          document.getElementById('endDate').innerText = `End: ${dates.end}`;
+        });
       });
     </script>
   </body>
