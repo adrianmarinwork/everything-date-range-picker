@@ -131,6 +131,7 @@ class EverythingDateRangePicker {
   #startCalendarMonth;
   #endCalendarMonth;
   #timesClickedDate = 0;
+  #calendarGranularity;
 
   constructor(containerId, options = {}) {
     this.container = document.getElementById(containerId);
@@ -156,6 +157,7 @@ class EverythingDateRangePicker {
     this.timezone = options.timezone || null;
     this.showTimezoneChooser = options.showTimezoneChooser || false;
     this.granularity = options.granularity || 'hours';
+    this.#calendarGranularity = this.granularity;
     this.singleCalendar = options.singleCalendar || false;
     this.ranges = options.ranges || this.#defaultRanges;
     this.spanOfSelecteableDays = options.spanOfSelecteableDays || null;
@@ -393,14 +395,9 @@ class EverythingDateRangePicker {
       calendarToUse = this.endCalendar;
     }
 
-    let newDateToRender;
+    console.log('dateToUse: ', dateToUse);
 
-    if (isPreviousArrow) {
-      newDateToRender = new Date(dateToUse).setMonth(dateToUse.getMonth() - 1);
-    } else {
-      newDateToRender = new Date(dateToUse).setMonth(dateToUse.getMonth() + 1);
-    }
-
+    let newDateToRender = this.#calculateNewDate(dateToUse, isPreviousArrow);
     newDateToRender = new Date(newDateToRender);
 
     if (isLeftCalendar) {
@@ -448,6 +445,11 @@ class EverythingDateRangePicker {
           '.left-calendar-next-arrow'
         );
         nextArrow.style.display = 'block';
+
+        const endCalendarPreviousArrow = this.calendarContainer.querySelector(
+          '.right-calendar-previous-arrow'
+        );
+        endCalendarPreviousArrow.style.display = 'block';
       }
 
       if (!isPreviousArrow) {
@@ -455,6 +457,18 @@ class EverythingDateRangePicker {
           '.left-calendar-previous-arrow'
         );
         previousArrow.style.display = 'block';
+
+        /* 
+          In the case that the next arrow is clicked in the left calendar and the
+          start and end date are equal, the previous arrow in the right calendar has to be
+          disabled too
+        */
+        if (startDateEqualsEndDate) {
+          const endCalendarPreviousArrow = this.calendarContainer.querySelector(
+            '.right-calendar-previous-arrow'
+          );
+          endCalendarPreviousArrow.style.display = 'none';
+        }
       }
     }
 
@@ -483,6 +497,18 @@ class EverythingDateRangePicker {
           '.right-calendar-next-arrow'
         );
         nextArrow.style.display = 'block';
+
+        /* 
+          In the case that the previous arrow is clicked in the right calendar and the
+          start and end date are equal, the next arrow in the left calendar has to be
+          disabled too
+        */
+        if (startDateEqualsEndDate) {
+          const startCalendarNextArrow = this.calendarContainer.querySelector(
+            '.left-calendar-next-arrow'
+          );
+          startCalendarNextArrow.style.display = 'none';
+        }
       }
 
       if (!isPreviousArrow) {
@@ -490,8 +516,43 @@ class EverythingDateRangePicker {
           '.right-calendar-previous-arrow'
         );
         previousArrow.style.display = 'block';
+
+        const startCalendarNextArrow = this.calendarContainer.querySelector(
+          '.left-calendar-next-arrow'
+        );
+        startCalendarNextArrow.style.display = 'block';
       }
     }
+  }
+
+  #calculateNewDate(dateToUse, isPreviousArrow) {
+    let newDateToRender;
+
+    switch (this.#calendarGranularity) {
+      case 'hours':
+      case 'days': {
+        const newMonth = isPreviousArrow
+          ? dateToUse.getMonth() - 1
+          : dateToUse.getMonth() + 1;
+
+        newDateToRender = new Date(dateToUse).setMonth(newMonth);
+        break;
+      }
+      case 'months':
+      case 'quarters':
+      case 'semesters': {
+        const newYear = isPreviousArrow
+          ? dateToUse.getFullYear() - 1
+          : dateToUse.getFullYear() + 1;
+
+        newDateToRender = new Date(dateToUse).setFullYear(newYear);
+        break;
+      }
+      case 'years':
+        break;
+    }
+
+    return newDateToRender;
   }
 
   /**
@@ -660,7 +721,44 @@ class EverythingDateRangePicker {
    * @returns The HTML of the calendar
    */
   #generateCalendar(date, sideOfCalendar) {
-    const granularity = 'month';
+    const granularity = this.#calendarGranularity;
+
+    const titleOfCalendar = this.#generateTitleOfCalendar(granularity, date);
+    if (sideOfCalendar === 'left') {
+      this.#startCalendarMonth.innerHTML = titleOfCalendar;
+    } else {
+      this.#endCalendarMonth.innerHTML = titleOfCalendar;
+    }
+
+    let calendarHTML;
+    switch (granularity) {
+      case 'hours':
+      case 'days':
+        calendarHTML = this.#generateHoursDaysCalendar(date);
+        break;
+      case 'weeks':
+        break;
+      case 'months':
+        calendarHTML = this.#generateMonthsCalendar(date);
+        break;
+      case 'quarters':
+        break;
+      case 'semesters':
+        break;
+      case 'years':
+        break;
+    }
+
+    return calendarHTML;
+  }
+
+  /**
+   * Method used to generate the calendar used for the hours and days granularity that displays
+   * the days of the month
+   * @param {Object} date The date object to use to generate the calendar
+   * @returns The HTML of the calendar
+   */
+  #generateHoursDaysCalendar(date) {
     let firstDayOfMonthInWeek = new Date(date);
     firstDayOfMonthInWeek = new Date(firstDayOfMonthInWeek.setDate(1)).getDay();
     let lastDayOfMonth = new Date(date);
@@ -669,7 +767,7 @@ class EverythingDateRangePicker {
     lastDayOfMonth = lastDayOfMonth.getDate();
 
     // Get the index of the week for the day the user selected as first day of the week
-    let indexOfFirstDayOfWeek =
+    const indexOfFirstDayOfWeek =
       this.#dayOfWeekNumberRelationObj[this.firstDayOfWeek];
 
     let dayOfMonth = 1;
@@ -753,14 +851,7 @@ class EverythingDateRangePicker {
       tableDaysHTML += `</tr>`;
     }
 
-    const titleOfCalendar = this.#generateTitleOfCalendar(granularity, date);
-    if (sideOfCalendar === 'left') {
-      this.#startCalendarMonth.innerHTML = titleOfCalendar;
-    } else {
-      this.#endCalendarMonth.innerHTML = titleOfCalendar;
-    }
-
-    let calendarHTML = `
+    const calendarHTML = `
       <table>
         <thead>
           <tr>
@@ -769,6 +860,51 @@ class EverythingDateRangePicker {
         </thead>
         <tbody>
           ${tableDaysHTML}
+        </tbody>
+      </table>
+    `;
+
+    return calendarHTML;
+  }
+
+  /**
+   * Method used to generate the calendar used for the months granularity that displays
+   * the months
+   * @param {Object} date The date object to use to generate the calendar
+   * @returns The HTML of the calendar
+   */
+  #generateMonthsCalendar(date) {
+    const day = 1;
+    const year = new Date(date).getFullYear();
+
+    let tableMonthsHTML = '';
+    let index = 0;
+
+    do {
+      tableMonthsHTML += '<tr>';
+
+      for (let j = 0; j < 3; j++) {
+        const monthNumber = index;
+        let monthName = this.#monthsStrings[monthNumber];
+        monthName = monthName.substring(0, 3);
+
+        const dateValue = `${year}-${monthNumber + 1}-${day}`;
+        const attributesToAdd = day
+          ? `class="calendar-clickable-cell" data-value="${dateValue}"`
+          : '';
+
+        tableMonthsHTML += `<td ${attributesToAdd}>${monthName}</td>`;
+
+        index += 1;
+      }
+
+      tableMonthsHTML += '</tr>';
+    } while (index < 12);
+
+    const calendarHTML = `
+      <table>
+        <tbody>
+          ${tableMonthsHTML}
         </tbody>
       </table>
     `;
@@ -787,11 +923,20 @@ class EverythingDateRangePicker {
     let titleOfCalendar = '';
 
     switch (granularity) {
-      case 'month': {
+      case 'hours':
+      case 'days': {
         const month = date.getMonth();
         const monthName = this.#monthsStrings[month];
         const year = date.getFullYear();
         titleOfCalendar = `${monthName} ${year}`;
+        break;
+      }
+      case 'months':
+      case 'quarters':
+      case 'semesters':
+      case 'years': {
+        const year = date.getFullYear();
+        titleOfCalendar = year;
         break;
       }
     }
@@ -848,7 +993,7 @@ class EverythingDateRangePicker {
     let endDateEqualsMinDate = false;
     let endDateEqualsMaxDate = false;
     let startDateEqualsEndDate = false;
-    const granularity = 'month';
+    const granularity = this.#calendarGranularity;
 
     if (this.minDate) {
       startDateEqualsMinDate = this.checkIfDatesEqualsBasedInGranularity(
@@ -911,7 +1056,8 @@ class EverythingDateRangePicker {
     let areDateEquals = false;
 
     switch (granularity) {
-      case 'month': {
+      case 'hours':
+      case 'days': {
         const sameMonth = firstDate.getMonth() === secondDate.getMonth();
         const sameYear = firstDate.getFullYear() === secondDate.getFullYear();
 
@@ -920,6 +1066,18 @@ class EverythingDateRangePicker {
         }
         break;
       }
+      case 'months':
+      case 'quarters':
+      case 'semesters': {
+        const sameYear = firstDate.getFullYear() === secondDate.getFullYear();
+
+        if (sameYear) {
+          areDateEquals = true;
+        }
+        break;
+      }
+      case 'years':
+        break;
     }
 
     return areDateEquals;
