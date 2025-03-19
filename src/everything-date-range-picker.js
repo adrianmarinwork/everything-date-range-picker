@@ -636,6 +636,7 @@ class EverythingDateRangePicker {
         formattedDate = `${year}-${month}-${day}`;
         break;
       case 'months':
+      case 'quarters':
         formattedDate = `${year}-${month}`;
         break;
       case 'years':
@@ -747,6 +748,7 @@ class EverythingDateRangePicker {
         calendarHTML = this.#generateMonthsCalendar(date);
         break;
       case 'quarters':
+        calendarHTML = this.#generateQuartersCalendar(date);
         break;
       case 'semesters':
         break;
@@ -895,9 +897,7 @@ class EverythingDateRangePicker {
         monthName = monthName.substring(0, 3);
 
         const dateValue = `${year}-${monthNumber + 1}-${day}`;
-        const attributesToAdd = day
-          ? `class="calendar-clickable-cell" data-value="${dateValue}"`
-          : '';
+        const attributesToAdd = `class="calendar-clickable-cell" data-value="${dateValue}"`;
 
         tableMonthsHTML += `<td ${attributesToAdd}>${monthName}</td>`;
 
@@ -911,6 +911,47 @@ class EverythingDateRangePicker {
       <table>
         <tbody>
           ${tableMonthsHTML}
+        </tbody>
+      </table>
+    `;
+
+    return calendarHTML;
+  }
+
+  /**
+   * Method used to generate the calendar used for the quarters granularity that displays
+   * the quarters of a year
+   * @param {Object} date The date object to use to generate the calendar
+   * @returns The HTML of the calendar
+   */
+  #generateQuartersCalendar(date) {
+    const day = 1;
+    let month = 1;
+    const year = new Date(date).getFullYear();
+
+    let tableQuartersHTML = '';
+    let index = 1;
+
+    do {
+      tableQuartersHTML += '<tr>';
+
+      for (let j = 0; j < 2; j++) {
+        const dateValue = `${year}-${month}-${day}`;
+        const attributesToAdd = `class="calendar-clickable-cell" data-value="${dateValue}"`;
+
+        tableQuartersHTML += `<td ${attributesToAdd}>Q${index}</td>`;
+
+        index += 1;
+        month += 3;
+      }
+
+      tableQuartersHTML += '</tr>';
+    } while (index <= 4);
+
+    const calendarHTML = `
+      <table>
+        <tbody>
+          ${tableQuartersHTML}
         </tbody>
       </table>
     `;
@@ -939,9 +980,7 @@ class EverythingDateRangePicker {
 
       for (let j = 0; j < 3; j++) {
         const dateValue = `${year}-${month}-${day}`;
-        const attributesToAdd = day
-          ? `class="calendar-clickable-cell" data-value="${dateValue}"`
-          : '';
+        const attributesToAdd = `class="calendar-clickable-cell" data-value="${dateValue}"`;
 
         tableYearsHTML += `<td ${attributesToAdd}>${year}</td>`;
 
