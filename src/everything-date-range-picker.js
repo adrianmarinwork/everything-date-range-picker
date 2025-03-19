@@ -395,8 +395,6 @@ class EverythingDateRangePicker {
       calendarToUse = this.endCalendar;
     }
 
-    console.log('dateToUse: ', dateToUse);
-
     let newDateToRender = this.#calculateNewDate(dateToUse, isPreviousArrow);
     newDateToRender = new Date(newDateToRender);
 
@@ -446,10 +444,10 @@ class EverythingDateRangePicker {
         );
         nextArrow.style.display = 'block';
 
-        const endCalendarPreviousArrow = this.calendarContainer.querySelector(
+        const rightCalendarPreviousArrow = this.calendarContainer.querySelector(
           '.right-calendar-previous-arrow'
         );
-        endCalendarPreviousArrow.style.display = 'block';
+        rightCalendarPreviousArrow.style.display = 'block';
       }
 
       if (!isPreviousArrow) {
@@ -464,10 +462,11 @@ class EverythingDateRangePicker {
           disabled too
         */
         if (startDateEqualsEndDate) {
-          const endCalendarPreviousArrow = this.calendarContainer.querySelector(
-            '.right-calendar-previous-arrow'
-          );
-          endCalendarPreviousArrow.style.display = 'none';
+          const rightCalendarPreviousArrow =
+            this.calendarContainer.querySelector(
+              '.right-calendar-previous-arrow'
+            );
+          rightCalendarPreviousArrow.style.display = 'none';
         }
       }
     }
@@ -504,10 +503,10 @@ class EverythingDateRangePicker {
           disabled too
         */
         if (startDateEqualsEndDate) {
-          const startCalendarNextArrow = this.calendarContainer.querySelector(
+          const leftCalendarNextArrow = this.calendarContainer.querySelector(
             '.left-calendar-next-arrow'
           );
-          startCalendarNextArrow.style.display = 'none';
+          leftCalendarNextArrow.style.display = 'none';
         }
       }
 
@@ -517,10 +516,10 @@ class EverythingDateRangePicker {
         );
         previousArrow.style.display = 'block';
 
-        const startCalendarNextArrow = this.calendarContainer.querySelector(
+        const leftCalendarNextArrow = this.calendarContainer.querySelector(
           '.left-calendar-next-arrow'
         );
-        startCalendarNextArrow.style.display = 'block';
+        leftCalendarNextArrow.style.display = 'block';
       }
     }
   }
@@ -549,6 +548,11 @@ class EverythingDateRangePicker {
         break;
       }
       case 'years':
+        const newYear = isPreviousArrow
+          ? dateToUse.getFullYear() - 10
+          : dateToUse.getFullYear() + 10;
+
+        newDateToRender = new Date(dateToUse).setFullYear(newYear);
         break;
     }
 
@@ -712,6 +716,7 @@ class EverythingDateRangePicker {
 
     this.populateStartCalendar();
     this.populateEndCalendar();
+    this.#setStateOfCalendarArrows();
   }
 
   /**
@@ -746,6 +751,7 @@ class EverythingDateRangePicker {
       case 'semesters':
         break;
       case 'years':
+        calendarHTML = this.#generateYearsCalendar(date);
         break;
     }
 
@@ -913,6 +919,50 @@ class EverythingDateRangePicker {
   }
 
   /**
+   * Method used to generate the calendar used for the years granularity that displays
+   * the years
+   * @param {Object} date The date object to use to generate the calendar
+   * @returns The HTML of the calendar
+   */
+  #generateYearsCalendar(date) {
+    const day = 1;
+    const month = 1;
+    const dateYear = new Date(date).getFullYear();
+    const tableFirstYear = dateYear - 6;
+    const tableLastYear = dateYear + 5;
+    let year = tableFirstYear;
+
+    let tableYearsHTML = '';
+
+    do {
+      tableYearsHTML += '<tr>';
+
+      for (let j = 0; j < 3; j++) {
+        const dateValue = `${year}-${month}-${day}`;
+        const attributesToAdd = day
+          ? `class="calendar-clickable-cell" data-value="${dateValue}"`
+          : '';
+
+        tableYearsHTML += `<td ${attributesToAdd}>${year}</td>`;
+
+        year += 1;
+      }
+
+      tableYearsHTML += '</tr>';
+    } while (year <= tableLastYear);
+
+    const calendarHTML = `
+      <table>
+        <tbody>
+          ${tableYearsHTML}
+        </tbody>
+      </table>
+    `;
+
+    return calendarHTML;
+  }
+
+  /**
    * Method that takes care of generating the title of the rendered calendar
    * @param {String} granularity The granularity that is currently rendering the calendar
    * @param {Object} date The date object
@@ -980,6 +1030,46 @@ class EverythingDateRangePicker {
     const differenceOfValuesOf = firstDate.valueOf() - secondDate.valueOf();
     const isFirstDateSmaller = differenceOfValuesOf < 0;
     return isFirstDateSmaller;
+  }
+
+  /**
+   * Method that takes care of setting the state of the arrows to disable or enable them.
+   * This method is only called when the user clicks a range list element
+   */
+  #setStateOfCalendarArrows() {
+    const {
+      startDateEqualsMinDate,
+      startDateEqualsMaxDate,
+      endDateEqualsMinDate,
+      endDateEqualsMaxDate,
+      startDateEqualsEndDate,
+    } = this.#checkDatesToRenderArrows();
+
+    const leftCalendarPreviousArrow = this.calendarContainer.querySelector(
+      '.left-calendar-previous-arrow'
+    );
+    const leftCalendarNextArrow = this.calendarContainer.querySelector(
+      '.left-calendar-next-arrow'
+    );
+    const rightCalendarPreviousArrow = this.calendarContainer.querySelector(
+      '.right-calendar-previous-arrow'
+    );
+    const rightCalendarNextArrow = this.calendarContainer.querySelector(
+      '.right-calendar-next-arrow'
+    );
+
+    let display = startDateEqualsMinDate ? 'none' : 'block';
+    leftCalendarPreviousArrow.style.display = display;
+
+    display =
+      startDateEqualsEndDate || startDateEqualsMaxDate ? 'none' : 'block';
+    leftCalendarNextArrow.style.display = display;
+
+    display = startDateEqualsEndDate || endDateEqualsMinDate ? 'none' : 'block';
+    rightCalendarPreviousArrow.style.display = display;
+
+    display = endDateEqualsMaxDate ? 'none' : 'block';
+    rightCalendarNextArrow.style.display = display;
   }
 
   /**
@@ -1076,8 +1166,15 @@ class EverythingDateRangePicker {
         }
         break;
       }
-      case 'years':
+      case 'years': {
+        const yearsDifference =
+          secondDate.getFullYear() - firstDate.getFullYear();
+
+        if (yearsDifference < 10) {
+          areDateEquals = true;
+        }
         break;
+      }
     }
 
     return areDateEquals;
