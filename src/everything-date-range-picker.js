@@ -529,7 +529,8 @@ class EverythingDateRangePicker {
 
     switch (this.#calendarGranularity) {
       case 'hours':
-      case 'days': {
+      case 'days':
+      case 'weeks': {
         const newMonth = isPreviousArrow
           ? dateToUse.getMonth() - 1
           : dateToUse.getMonth() + 1;
@@ -637,6 +638,7 @@ class EverythingDateRangePicker {
         break;
       case 'months':
       case 'quarters':
+      case 'semesters':
         formattedDate = `${year}-${month}`;
         break;
       case 'years':
@@ -740,9 +742,8 @@ class EverythingDateRangePicker {
     switch (granularity) {
       case 'hours':
       case 'days':
-        calendarHTML = this.#generateHoursDaysCalendar(date);
-        break;
       case 'weeks':
+        calendarHTML = this.#generateHoursDaysCalendar(date);
         break;
       case 'months':
         calendarHTML = this.#generateMonthsCalendar(date);
@@ -751,6 +752,7 @@ class EverythingDateRangePicker {
         calendarHTML = this.#generateQuartersCalendar(date);
         break;
       case 'semesters':
+        calendarHTML = this.#generateSemestersCalendar(date);
         break;
       case 'years':
         calendarHTML = this.#generateYearsCalendar(date);
@@ -960,6 +962,41 @@ class EverythingDateRangePicker {
   }
 
   /**
+   * Method used to generate the calendar used for the semesters granularity that displays
+   * the semesters of a year
+   * @param {Object} date The date object to use to generate the calendar
+   * @returns The HTML of the calendar
+   */
+  #generateSemestersCalendar(date) {
+    const day = 1;
+    let month = 1;
+    const year = new Date(date).getFullYear();
+
+    let tableSemestersHTML = '';
+
+    for (let i = 1; i <= 2; i++) {
+      const dateValue = `${year}-${month}-${day}`;
+      const attributesToAdd = `class="calendar-clickable-cell" data-value="${dateValue}"`;
+
+      tableSemestersHTML += `<td ${attributesToAdd}>H${i}</td>`;
+
+      month += 5;
+    }
+
+    const calendarHTML = `
+      <table>
+        <tbody>
+          <tr>
+            ${tableSemestersHTML}
+          </tr>
+        </tbody>
+      </table>
+    `;
+
+    return calendarHTML;
+  }
+
+  /**
    * Method used to generate the calendar used for the years granularity that displays
    * the years
    * @param {Object} date The date object to use to generate the calendar
@@ -1013,7 +1050,8 @@ class EverythingDateRangePicker {
 
     switch (granularity) {
       case 'hours':
-      case 'days': {
+      case 'days':
+      case 'weeks': {
         const month = date.getMonth();
         const monthName = this.#monthsStrings[month];
         const year = date.getFullYear();
@@ -1186,7 +1224,8 @@ class EverythingDateRangePicker {
 
     switch (granularity) {
       case 'hours':
-      case 'days': {
+      case 'days':
+      case 'weeks': {
         const sameMonth = firstDate.getMonth() === secondDate.getMonth();
         const sameYear = firstDate.getFullYear() === secondDate.getFullYear();
 
