@@ -8,28 +8,36 @@
   </head>
   <body>
     <button id="getDatesBtn" type="button">Get Dates</button>
-    <p id="startDate"></p>
-    <p id="endDate"></p>
+    <div style="display: flex; gap: 1rem; margin: 1rem 0">
+      <div style="padding: 1rem; border: 1px solid black">
+        <p id="startDate"></p>
+        <p id="startDateFrom"></p>
+        <p id="startDateTo"></p>
+      </div>
+      <div style="padding: 1rem; border: 1px solid black">
+        <p id="endDate"></p>
+        <p id="endDateFrom"></p>
+        <p id="endDateTo"></p>
+      </div>
+    </div>
     <div id="datePickerContainer"></div>
     <script src="src/everything-date-range-picker.js"></script>
     <script>
       document.addEventListener('DOMContentLoaded', () => {
-        const datePicker = new EverythingDateRangePicker(
-          'datePickerContainer',
-          {
-            startDate: '2024-10-15 12:52:29',
-            endDate: '2025-11-15 12:52:29',
-            // granularity: 'hour',
-            // granularity: 'month',
-            granularity: 'quarter',
-            // granularity: 'semester',
-            // granularity: 'year',
-            // endDate: "2024-11-15 12:52:30",
-            // minDate: '2024-10-15 12:52:30',
-            // maxDate: "2024-11-15 12:52:30",
-            // singleCalendar: true,
-          }
-        );
+        const datePicker = new EverythingDateRangePicker('datePickerContainer', {
+          startDate: '2024-10-15 12:52:29',
+          endDate: '2025-11-15 12:52:29',
+          // granularity: 'hour',
+          granularity: 'day',
+          // granularity: 'month',
+          // granularity: 'quarter',
+          // granularity: 'semester',
+          // granularity: 'year',
+          // endDate: "2024-11-15 12:52:30",
+          // minDate: '2024-10-15 12:52:30',
+          // maxDate: "2024-11-15 12:52:30",
+          // singleCalendar: true,
+        });
 
         console.log('My Start Date: ', datePicker.startDate);
 
@@ -37,10 +45,13 @@
         getDatesBtn.addEventListener('click', (event) => {
           const dates = datePicker.getSelectedDates();
           console.log('dates: ', dates);
-          document.getElementById(
-            'startDate'
-          ).innerText = `Start: ${dates.start}`;
-          document.getElementById('endDate').innerText = `End: ${dates.end}`;
+          document.getElementById('startDate').innerText = `Start: ${dates.startDate}`;
+          document.getElementById('startDateFrom').innerText = `Start From: ${dates.startDateFrom}`;
+          document.getElementById('startDateTo').innerText = `Start To: ${dates.startDateTo}`;
+
+          document.getElementById('endDate').innerText = `End: ${dates.endDate}`;
+          document.getElementById('endDateFrom').innerText = `End From: ${dates.endDateFrom}`;
+          document.getElementById('endDateTo').innerText = `End To: ${dates.endDateTo}`;
         });
       });
     </script>
