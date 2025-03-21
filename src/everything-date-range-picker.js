@@ -94,13 +94,13 @@ class EverythingDateRangePicker {
   ];
 
   #granularitiesAvailable = [
-    'hours',
-    'days',
-    'weeks',
-    'months',
-    'quarters',
-    'semesters',
-    'years',
+    'hour',
+    'day',
+    'week',
+    'month',
+    'quarter',
+    'semester',
+    'year',
   ];
 
   #monthsStrings = [
@@ -156,7 +156,7 @@ class EverythingDateRangePicker {
     this.#checkValidityOfDateType('maxDate');
     this.timezone = options.timezone || null;
     this.showTimezoneChooser = options.showTimezoneChooser || false;
-    this.granularity = options.granularity || 'hours';
+    this.granularity = options.granularity || 'hour';
     this.#calendarGranularity = this.granularity;
     this.singleCalendar = options.singleCalendar || false;
     this.ranges = options.ranges || this.#defaultRanges;
@@ -528,9 +528,9 @@ class EverythingDateRangePicker {
     let newDateToRender;
 
     switch (this.#calendarGranularity) {
-      case 'hours':
-      case 'days':
-      case 'weeks': {
+      case 'hour':
+      case 'day':
+      case 'week': {
         const newMonth = isPreviousArrow
           ? dateToUse.getMonth() - 1
           : dateToUse.getMonth() + 1;
@@ -538,9 +538,9 @@ class EverythingDateRangePicker {
         newDateToRender = new Date(dateToUse).setMonth(newMonth);
         break;
       }
-      case 'months':
-      case 'quarters':
-      case 'semesters': {
+      case 'month':
+      case 'quarter':
+      case 'semester': {
         const newYear = isPreviousArrow
           ? dateToUse.getFullYear() - 1
           : dateToUse.getFullYear() + 1;
@@ -548,7 +548,7 @@ class EverythingDateRangePicker {
         newDateToRender = new Date(dateToUse).setFullYear(newYear);
         break;
       }
-      case 'years':
+      case 'year':
         const newYear = isPreviousArrow
           ? dateToUse.getFullYear() - 10
           : dateToUse.getFullYear() + 10;
@@ -598,28 +598,38 @@ class EverythingDateRangePicker {
     this.#timesClickedDate = 0;
   }
 
-  getSelectedDates(dontFormatDates) {
-    let dates = {};
+  getSelectedDates() {
+    const startDateFormatted = this.getDateFormatedByGranularity(
+      this.selectedStartDate
+    );
+    let dates = {
+      granularity: this.granularity,
+      startDate: startDateFormatted.date,
+      startDateFrom: startDateFormatted.from,
+      startDateTo: startDateFormatted.to,
+    };
 
-    if (dontFormatDates) {
-      dates.start = this.selectedStartDate;
-
-      if (!this.singleCalendar) {
-        dates.end = this.selectedEndDate;
-      }
-
+    // If the user has the single calendar enabled we don't need to get the end date
+    if (this.singleCalendar) {
       return dates;
     }
 
-    dates.start = this.getDateFormatedByGranularity(this.selectedStartDate);
-
-    if (!this.singleCalendar) {
-      dates.end = this.getDateFormatedByGranularity(this.selectedEndDate);
-    }
+    const endDateFormatted = this.getDateFormatedByGranularity(
+      this.selectedEndDate
+    );
+    dates.endDate = endDateFormatted.date;
+    dates.endDateFrom = endDateFormatted.from;
+    dates.endDateTo = endDateFormatted.to;
 
     return dates;
   }
 
+  /**
+   * Method that takes care of returning the selected dates formatting them by the selected
+   * granularity by the user
+   * @param {Object} date The date object
+   * @returns {Object} The formatted date, the from date of the granularity selected and the to date
+   */
   getDateFormatedByGranularity(date) {
     const granularity = this.granularity;
     const day = this.#verifyDateElementHasTwoDigits(date.getDate());
@@ -628,25 +638,82 @@ class EverythingDateRangePicker {
     const hours = this.#verifyDateElementHasTwoDigits(date.getHours());
     const minutes = this.#verifyDateElementHasTwoDigits(date.getMinutes());
     let formattedDate = '';
+    let from = '';
+    let to = '';
 
     switch (granularity) {
-      case 'hours':
+      case 'hour':
         formattedDate = `${year}-${month}-${day} ${hours}:${minutes}`;
+        from = `${year}-${month}-${day} ${hours}:${minutes}`;
+        to = `${year}-${month}-${day} ${hours}:${minutes}`;
         break;
-      case 'days':
+      case 'day':
         formattedDate = `${year}-${month}-${day}`;
+        from = `${year}-${month}-${day} 00:00`;
+        to = `${year}-${month}-${day} 23:59`;
         break;
-      case 'months':
-      case 'quarters':
-      case 'semesters':
+      case 'month': {
         formattedDate = `${year}-${month}`;
+        from = `${year}-${month}-01 00:00`;
+
+        const lastDayOfMonth = this.#getLastDayOfMonth(date);
+        to = `${year}-${month}-${lastDayOfMonth} 23:59`;
         break;
-      case 'years':
+      }
+      case 'quarter': {
+        let quarter = 'Q1';
+
+        switch (month) {
+          case '04':
+            quarter = 'Q2';
+            break;
+          case '07':
+            quarter = 'Q3';
+            break;
+          case 10:
+            quarter = 'Q4';
+            break;
+        }
+
+        formattedDate = `${year}-${quarter}`;
+        from = `${year}-${month}-01 00:00`;
+
+        const lastMonthOfQuarter = this.#verifyDateElementHasTwoDigits(
+          date.getMonth() + 3
+        );
+        const lastDayOfLastMonth = this.#getLastDayOfMonth(
+          `${year}-${lastMonthOfQuarter}-01`
+        );
+        to = `${year}-${lastMonthOfQuarter}-${lastDayOfLastMonth} 23:59`;
+        break;
+      }
+      case 'semester': {
+        let semester = 'H1';
+
+        if (month === '07') {
+          semester = 'H2';
+        }
+
+        formattedDate = `${year}-${semester}`;
+        from = `${year}-${month}-01 00:00`;
+
+        const lastMonthOfSemester = this.#verifyDateElementHasTwoDigits(
+          date.getMonth() + 6
+        );
+        const lastDayOfLastMonth = this.#getLastDayOfMonth(
+          `${year}-${lastMonthOfSemester}-01`
+        );
+        to = `${year}-${lastMonthOfSemester}-${lastDayOfLastMonth} 23:59`;
+        break;
+      }
+      case 'year':
         formattedDate = `${year}`;
+        from = `${year}-01-01 00:00`;
+        to = `${year}-12-31 23:59`;
         break;
     }
 
-    return formattedDate;
+    return { date: formattedDate, from, to };
   }
 
   #verifyDateElementHasTwoDigits(dateElement) {
@@ -740,21 +807,21 @@ class EverythingDateRangePicker {
 
     let calendarHTML;
     switch (granularity) {
-      case 'hours':
-      case 'days':
-      case 'weeks':
+      case 'hour':
+      case 'day':
+      case 'week':
         calendarHTML = this.#generateHoursDaysCalendar(date);
         break;
-      case 'months':
+      case 'month':
         calendarHTML = this.#generateMonthsCalendar(date);
         break;
-      case 'quarters':
+      case 'quarter':
         calendarHTML = this.#generateQuartersCalendar(date);
         break;
-      case 'semesters':
+      case 'semester':
         calendarHTML = this.#generateSemestersCalendar(date);
         break;
-      case 'years':
+      case 'year':
         calendarHTML = this.#generateYearsCalendar(date);
         break;
     }
@@ -771,10 +838,7 @@ class EverythingDateRangePicker {
   #generateHoursDaysCalendar(date) {
     let firstDayOfMonthInWeek = new Date(date);
     firstDayOfMonthInWeek = new Date(firstDayOfMonthInWeek.setDate(1)).getDay();
-    let lastDayOfMonth = new Date(date);
-    lastDayOfMonth.setMonth(lastDayOfMonth.getMonth() + 1);
-    lastDayOfMonth.setDate(0);
-    lastDayOfMonth = lastDayOfMonth.getDate();
+    const lastDayOfMonth = this.#getLastDayOfMonth(date);
 
     // Get the index of the week for the day the user selected as first day of the week
     const indexOfFirstDayOfWeek =
@@ -980,7 +1044,7 @@ class EverythingDateRangePicker {
 
       tableSemestersHTML += `<td ${attributesToAdd}>H${i}</td>`;
 
-      month += 5;
+      month += 6;
     }
 
     const calendarHTML = `
@@ -1049,19 +1113,19 @@ class EverythingDateRangePicker {
     let titleOfCalendar = '';
 
     switch (granularity) {
-      case 'hours':
-      case 'days':
-      case 'weeks': {
+      case 'hour':
+      case 'day':
+      case 'week': {
         const month = date.getMonth();
         const monthName = this.#monthsStrings[month];
         const year = date.getFullYear();
         titleOfCalendar = `${monthName} ${year}`;
         break;
       }
-      case 'months':
-      case 'quarters':
-      case 'semesters':
-      case 'years': {
+      case 'month':
+      case 'quarter':
+      case 'semester':
+      case 'year': {
         const year = date.getFullYear();
         titleOfCalendar = year;
         break;
@@ -1223,9 +1287,9 @@ class EverythingDateRangePicker {
     let areDateEquals = false;
 
     switch (granularity) {
-      case 'hours':
-      case 'days':
-      case 'weeks': {
+      case 'hour':
+      case 'day':
+      case 'week': {
         const sameMonth = firstDate.getMonth() === secondDate.getMonth();
         const sameYear = firstDate.getFullYear() === secondDate.getFullYear();
 
@@ -1234,9 +1298,9 @@ class EverythingDateRangePicker {
         }
         break;
       }
-      case 'months':
-      case 'quarters':
-      case 'semesters': {
+      case 'month':
+      case 'quarter':
+      case 'semester': {
         const sameYear = firstDate.getFullYear() === secondDate.getFullYear();
 
         if (sameYear) {
@@ -1244,7 +1308,7 @@ class EverythingDateRangePicker {
         }
         break;
       }
-      case 'years': {
+      case 'year': {
         const yearsDifference =
           secondDate.getFullYear() - firstDate.getFullYear();
 
@@ -1256,6 +1320,20 @@ class EverythingDateRangePicker {
     }
 
     return areDateEquals;
+  }
+
+  /**
+   * Method used to get the last day of the month from a date
+   * @param {Object} date The date object we are going to work with
+   * @returns {Number} The last day of the month
+   */
+  #getLastDayOfMonth(date) {
+    let lastDayOfMonth = new Date(date);
+    lastDayOfMonth.setMonth(lastDayOfMonth.getMonth() + 1);
+    lastDayOfMonth.setDate(0);
+    lastDayOfMonth = lastDayOfMonth.getDate();
+
+    return lastDayOfMonth;
   }
 }
 
