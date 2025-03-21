@@ -9,73 +9,44 @@ class EverythingDateRangePicker {
     },
     {
       label: 'Yesterday',
-      startDate: new Date(
-        new Date(new Date().setDate(new Date().getDate() - 1)).setHours(0, 0)
-      ),
-      endDate: new Date(
-        new Date(new Date().setDate(new Date().getDate() - 1)).setHours(23, 59)
-      ),
+      startDate: new Date(new Date(new Date().setDate(new Date().getDate() - 1)).setHours(0, 0)),
+      endDate: new Date(new Date(new Date().setDate(new Date().getDate() - 1)).setHours(23, 59)),
     },
     {
       label: 'Last 7 Days',
-      startDate: new Date(
-        new Date(new Date().setDate(new Date().getDate() - 6)).setHours(0, 0)
-      ),
+      startDate: new Date(new Date(new Date().setDate(new Date().getDate() - 6)).setHours(0, 0)),
       endDate: new Date(),
     },
     {
       label: 'Last 30 Days',
-      startDate: new Date(
-        new Date(new Date().setDate(new Date().getDate() - 29)).setHours(0, 0)
-      ),
+      startDate: new Date(new Date(new Date().setDate(new Date().getDate() - 29)).setHours(0, 0)),
       endDate: new Date(),
     },
     {
       label: 'This Week',
       startDate: new Date(
-        new Date(
-          new Date().setDate(new Date().getDate() - new Date().getDay() + 1)
-        ).setHours(0, 0, 0, 0)
+        new Date(new Date().setDate(new Date().getDate() - new Date().getDay() + 1)).setHours(0, 0, 0, 0)
       ),
       endDate: new Date(),
     },
     {
       label: 'Last Week',
       startDate: new Date(
-        new Date(
-          new Date().setDate(new Date().getDate() - new Date().getDay() - 6)
-        ).setHours(0, 0, 0, 0)
+        new Date(new Date().setDate(new Date().getDate() - new Date().getDay() - 6)).setHours(0, 0, 0, 0)
       ),
       endDate: new Date(
-        new Date(
-          new Date().setDate(new Date().getDate() - new Date().getDay())
-        ).setHours(23, 59, 59, 999)
+        new Date(new Date().setDate(new Date().getDate() - new Date().getDay())).setHours(23, 59, 59, 999)
       ),
     },
     {
       label: 'This Month',
-      startDate: new Date(
-        new Date(new Date().getFullYear(), new Date().getMonth()).setHours(0, 0)
-      ),
+      startDate: new Date(new Date(new Date().getFullYear(), new Date().getMonth()).setHours(0, 0)),
       endDate: new Date(),
     },
     {
       label: 'Last Month',
-      startDate: new Date(
-        new Date(new Date().getFullYear(), new Date().getMonth() - 1).setHours(
-          0,
-          0
-        )
-      ),
-      endDate: new Date(
-        new Date().getFullYear(),
-        new Date().getMonth(),
-        0,
-        23,
-        59,
-        59,
-        999
-      ),
+      startDate: new Date(new Date(new Date().getFullYear(), new Date().getMonth() - 1).setHours(0, 0)),
+      endDate: new Date(new Date().getFullYear(), new Date().getMonth(), 0, 23, 59, 59, 999),
     },
     {
       label: 'Year to Date',
@@ -84,24 +55,12 @@ class EverythingDateRangePicker {
     },
     {
       label: 'Last Year',
-      startDate: new Date(
-        new Date(new Date().getFullYear() - 1, 0).setHours(0, 0)
-      ),
-      endDate: new Date(
-        new Date(new Date().getFullYear() - 1, 11).setHours(23, 59)
-      ),
+      startDate: new Date(new Date(new Date().getFullYear() - 1, 0).setHours(0, 0)),
+      endDate: new Date(new Date(new Date().getFullYear() - 1, 11).setHours(23, 59)),
     },
   ];
 
-  #granularitiesAvailable = [
-    'hour',
-    'day',
-    'week',
-    'month',
-    'quarter',
-    'semester',
-    'year',
-  ];
+  #granularitiesAvailable = ['hour', 'day', 'week', 'month', 'quarter', 'semester', 'year'];
 
   #monthsStrings = [
     'January',
@@ -140,13 +99,11 @@ class EverythingDateRangePicker {
     console.log('this.container: ', this.container);
     console.log('options: ', options);
 
-    this.startDate =
-      options.startDate || new Date(new Date().setHours(0, 0, 0, 0));
+    this.startDate = options.startDate || new Date(new Date().setHours(0, 0, 0, 0));
     this.#checkValidityOfDateType('startDate');
     this.currentStartDate = this.startDate;
     this.selectedStartDate = this.startDate;
-    this.endDate =
-      options.endDate || new Date(new Date().setHours(23, 59, 59, 999));
+    this.endDate = options.endDate || new Date(new Date().setHours(23, 59, 59, 999));
     this.#checkValidityOfDateType('endDate');
     this.currentEndDate = this.endDate;
     this.selectedEndDate = this.endDate;
@@ -164,10 +121,7 @@ class EverythingDateRangePicker {
     this.firstDayOfWeek = options.firstDayOfWeek || 'Monday';
 
     // Lets make the different checks for the dates
-    const isMinDateBigger = this.checkIfFirstDateBigger(
-      this.minDate,
-      this.startDate
-    );
+    const isMinDateBigger = this.checkIfFirstDateBigger(this.minDate, this.startDate);
 
     if (isMinDateBigger) {
       this.startDate = new Date(this.minDate);
@@ -175,10 +129,7 @@ class EverythingDateRangePicker {
       this.selectedStartDate = this.startDate;
     }
 
-    const isStartDateBigger = this.checkIfFirstDateBigger(
-      this.startDate,
-      this.endDate
-    );
+    const isStartDateBigger = this.checkIfFirstDateBigger(this.startDate, this.endDate);
 
     if (isStartDateBigger) {
       this.endDate = new Date(this.startDate);
@@ -186,10 +137,7 @@ class EverythingDateRangePicker {
       this.selectedEndDate = this.endDate;
     }
 
-    const isEndDateBigger = this.checkIfFirstDateBigger(
-      this.endDate,
-      this.maxDate
-    );
+    const isEndDateBigger = this.checkIfFirstDateBigger(this.endDate, this.maxDate);
 
     if (isEndDateBigger) {
       this.endDate = new Date(this.maxDate);
@@ -197,10 +145,7 @@ class EverythingDateRangePicker {
       this.selectedEndDate = this.endDate;
     }
 
-    const isEndDateSmaller = this.checkIfFirstDateSmaller(
-      this.endDate,
-      this.startDate
-    );
+    const isEndDateSmaller = this.checkIfFirstDateSmaller(this.endDate, this.startDate);
 
     if (isEndDateSmaller) {
       this.endDate = new Date(this.startDate);
@@ -227,12 +172,9 @@ class EverythingDateRangePicker {
     } = this.#checkDatesToRenderArrows();
 
     const hideLeftCalendarPreviousArrow =
-      startDateEqualsMinDate ||
-      endDateEqualsMinDate ||
-      (startDateEqualsEndDate && this.singleCalendar);
+      startDateEqualsMinDate || endDateEqualsMinDate || (startDateEqualsEndDate && this.singleCalendar);
 
-    const hideLeftCalendarNextArrow =
-      endDateEqualsMaxDate || startDateEqualsMaxDate || startDateEqualsEndDate;
+    const hideLeftCalendarNextArrow = endDateEqualsMaxDate || startDateEqualsMaxDate || startDateEqualsEndDate;
 
     const singleCalendar = `
       <div class="calendar">
@@ -255,8 +197,7 @@ class EverythingDateRangePicker {
       </div>
     `;
 
-    const hideRightCalendarPreviousArrow =
-      endDateEqualsMinDate || startDateEqualsEndDate;
+    const hideRightCalendarPreviousArrow = endDateEqualsMinDate || startDateEqualsEndDate;
 
     const hideRightCalendarNextArrow = endDateEqualsMaxDate;
 
@@ -314,25 +255,19 @@ class EverythingDateRangePicker {
     `;
 
     this.display = this.container.querySelector('.date-range-picker-display');
-    this.calendarContainer = this.container.querySelector(
-      '.date-range-picker-calendar-container'
-    );
+    this.calendarContainer = this.container.querySelector('.date-range-picker-calendar-container');
 
     this.selectedDatesElement = this.container.querySelector('.selected-dates');
 
     this.startCalendar = this.container.querySelector('.start-date-calendar');
-    this.#startCalendarMonth = this.container.querySelector(
-      '.start-date-calendar-month'
-    );
+    this.#startCalendarMonth = this.container.querySelector('.start-date-calendar-month');
 
     // If the singleCalendar boolean is true we render only the start calendar
     if (this.singleCalendar) {
       this.populateStartCalendar();
     } else {
       this.endCalendar = this.container.querySelector('.end-date-calendar');
-      this.#endCalendarMonth = this.container.querySelector(
-        '.end-date-calendar-month'
-      );
+      this.#endCalendarMonth = this.container.querySelector('.end-date-calendar-month');
       this.rangesContainer = this.container.querySelector('.ranges-container');
 
       this.populateStartCalendar();
@@ -341,18 +276,13 @@ class EverythingDateRangePicker {
     }
 
     this.display.addEventListener('click', () => this.toggleCalendar());
-    document.addEventListener('click', (event) =>
-      this.documentClickHandler(event)
-    );
+    document.addEventListener('click', (event) => this.documentClickHandler(event));
 
     // Add click event listener to the arrows to navigate the months
-    const listOfCalendarArrows =
-      this.container.querySelectorAll('.calendar-arrow');
+    const listOfCalendarArrows = this.container.querySelectorAll('.calendar-arrow');
 
     listOfCalendarArrows.forEach((calendarArrow) => {
-      calendarArrow.addEventListener('click', (event) =>
-        this.changeRenderedCalendar(event)
-      );
+      calendarArrow.addEventListener('click', (event) => this.changeRenderedCalendar(event));
     });
   }
 
@@ -361,8 +291,7 @@ class EverythingDateRangePicker {
    */
   toggleCalendar() {
     const currentDisplay = this.calendarContainer.style.display;
-    this.calendarContainer.style.display =
-      currentDisplay === 'flex' ? 'none' : 'flex';
+    this.calendarContainer.style.display = currentDisplay === 'flex' ? 'none' : 'flex';
   }
 
   /**
@@ -407,7 +336,7 @@ class EverythingDateRangePicker {
     const calendarSide = isLeftCalendar ? 'left' : 'right';
     const calendarHTML = this.#generateCalendar(newDateToRender, calendarSide);
     calendarToUse.innerHTML = calendarHTML;
-    this.#attachClickCellEvent(calendarToUse);
+    this.#attachClickCellEvent(calendarToUse, calendarSide);
 
     const {
       startDateEqualsMinDate,
@@ -439,21 +368,15 @@ class EverythingDateRangePicker {
 
       // The user clicked the previous arrow (enables the 'next' arrow)
       if (isPreviousArrow) {
-        const nextArrow = this.calendarContainer.querySelector(
-          '.left-calendar-next-arrow'
-        );
+        const nextArrow = this.calendarContainer.querySelector('.left-calendar-next-arrow');
         nextArrow.style.display = 'block';
 
-        const rightCalendarPreviousArrow = this.calendarContainer.querySelector(
-          '.right-calendar-previous-arrow'
-        );
+        const rightCalendarPreviousArrow = this.calendarContainer.querySelector('.right-calendar-previous-arrow');
         rightCalendarPreviousArrow.style.display = 'block';
       }
 
       if (!isPreviousArrow) {
-        const previousArrow = this.calendarContainer.querySelector(
-          '.left-calendar-previous-arrow'
-        );
+        const previousArrow = this.calendarContainer.querySelector('.left-calendar-previous-arrow');
         previousArrow.style.display = 'block';
 
         /* 
@@ -462,10 +385,7 @@ class EverythingDateRangePicker {
           disabled too
         */
         if (startDateEqualsEndDate) {
-          const rightCalendarPreviousArrow =
-            this.calendarContainer.querySelector(
-              '.right-calendar-previous-arrow'
-            );
+          const rightCalendarPreviousArrow = this.calendarContainer.querySelector('.right-calendar-previous-arrow');
           rightCalendarPreviousArrow.style.display = 'none';
         }
       }
@@ -492,9 +412,7 @@ class EverythingDateRangePicker {
 
       // The user clicked the previous arrow (enables the 'next' arrow)
       if (isPreviousArrow) {
-        const nextArrow = this.calendarContainer.querySelector(
-          '.right-calendar-next-arrow'
-        );
+        const nextArrow = this.calendarContainer.querySelector('.right-calendar-next-arrow');
         nextArrow.style.display = 'block';
 
         /* 
@@ -503,22 +421,16 @@ class EverythingDateRangePicker {
           disabled too
         */
         if (startDateEqualsEndDate) {
-          const leftCalendarNextArrow = this.calendarContainer.querySelector(
-            '.left-calendar-next-arrow'
-          );
+          const leftCalendarNextArrow = this.calendarContainer.querySelector('.left-calendar-next-arrow');
           leftCalendarNextArrow.style.display = 'none';
         }
       }
 
       if (!isPreviousArrow) {
-        const previousArrow = this.calendarContainer.querySelector(
-          '.right-calendar-previous-arrow'
-        );
+        const previousArrow = this.calendarContainer.querySelector('.right-calendar-previous-arrow');
         previousArrow.style.display = 'block';
 
-        const leftCalendarNextArrow = this.calendarContainer.querySelector(
-          '.left-calendar-next-arrow'
-        );
+        const leftCalendarNextArrow = this.calendarContainer.querySelector('.left-calendar-next-arrow');
         leftCalendarNextArrow.style.display = 'block';
       }
     }
@@ -531,28 +443,19 @@ class EverythingDateRangePicker {
       case 'hour':
       case 'day':
       case 'week': {
-        const newMonth = isPreviousArrow
-          ? dateToUse.getMonth() - 1
-          : dateToUse.getMonth() + 1;
-
+        const newMonth = isPreviousArrow ? dateToUse.getMonth() - 1 : dateToUse.getMonth() + 1;
         newDateToRender = new Date(dateToUse).setMonth(newMonth);
         break;
       }
       case 'month':
       case 'quarter':
       case 'semester': {
-        const newYear = isPreviousArrow
-          ? dateToUse.getFullYear() - 1
-          : dateToUse.getFullYear() + 1;
-
+        const newYear = isPreviousArrow ? dateToUse.getFullYear() - 1 : dateToUse.getFullYear() + 1;
         newDateToRender = new Date(dateToUse).setFullYear(newYear);
         break;
       }
       case 'year':
-        const newYear = isPreviousArrow
-          ? dateToUse.getFullYear() - 10
-          : dateToUse.getFullYear() + 10;
-
+        const newYear = isPreviousArrow ? dateToUse.getFullYear() - 10 : dateToUse.getFullYear() + 10;
         newDateToRender = new Date(dateToUse).setFullYear(newYear);
         break;
     }
@@ -564,13 +467,39 @@ class EverythingDateRangePicker {
    * Method that takes care of attaching the click event to the cells in the calendar
    * that contains the dates
    * @param {Object} calendarElement The DOM element of the calendar
+   * @param {String} calendarSide The side of the calendar calling this method
    */
-  #attachClickCellEvent(calendarElement) {
-    const listOfDateCells = calendarElement.querySelectorAll(
-      '.calendar-clickable-cell'
-    );
+  #attachClickCellEvent(calendarElement, calendarSide) {
+    const listOfDateCells = calendarElement.querySelectorAll('.calendar-clickable-cell');
 
-    const clickEventFnct = (event) => this.saveClickedDate(event);
+    const clickEventFnct = (event) => {
+      event.stopPropagation();
+
+      if (this.granularity !== this.#calendarGranularity) {
+        let newGranularity = this.granularity;
+
+        if (['month', 'quarter', 'semester'].includes(this.granularity)) {
+          newGranularity = this.granularity;
+        } else if (this.#calendarGranularity === 'year' && ['hour', 'day'].includes(this.granularity)) {
+          newGranularity = 'month';
+        }
+
+        const dateClicked = event.target.getAttribute('data-value');
+        if (calendarSide === 'left') {
+          this.currentStartDate = new Date(dateClicked);
+        } else {
+          this.currentEndDate = new Date(dateClicked);
+        }
+
+        this.#calendarGranularity = newGranularity;
+        this.populateStartCalendar();
+        this.populateEndCalendar();
+        this.#setStateOfCalendarArrows();
+        return;
+      }
+
+      this.saveClickedDate(event);
+    };
 
     listOfDateCells.forEach((dateCell) => {
       dateCell.addEventListener('click', clickEventFnct);
@@ -598,10 +527,30 @@ class EverythingDateRangePicker {
     this.#timesClickedDate = 0;
   }
 
+  #attachClickCalendarTitleEvent(calendarTitleElement) {
+    const listOfTitleElements = calendarTitleElement.querySelectorAll('.calendarTitleElement');
+
+    const clickEventFnct = (event) => {
+      event.stopPropagation();
+
+      const clickedValue = event.target.getAttribute('data-value');
+      if (clickedValue === 'year' && this.#calendarGranularity === 'year') {
+        return;
+      }
+
+      this.#calendarGranularity = clickedValue;
+      this.populateStartCalendar();
+      this.populateEndCalendar();
+      this.#setStateOfCalendarArrows();
+    };
+
+    listOfTitleElements.forEach((titleElement) => {
+      titleElement.addEventListener('click', clickEventFnct);
+    });
+  }
+
   getSelectedDates() {
-    const startDateFormatted = this.getDateFormatedByGranularity(
-      this.selectedStartDate
-    );
+    const startDateFormatted = this.getDateFormatedByGranularity(this.selectedStartDate);
     let dates = {
       granularity: this.granularity,
       startDate: startDateFormatted.date,
@@ -614,9 +563,7 @@ class EverythingDateRangePicker {
       return dates;
     }
 
-    const endDateFormatted = this.getDateFormatedByGranularity(
-      this.selectedEndDate
-    );
+    const endDateFormatted = this.getDateFormatedByGranularity(this.selectedEndDate);
     dates.endDate = endDateFormatted.date;
     dates.endDateFrom = endDateFormatted.from;
     dates.endDateTo = endDateFormatted.to;
@@ -678,12 +625,8 @@ class EverythingDateRangePicker {
         formattedDate = `${year}-${quarter}`;
         from = `${year}-${month}-01 00:00`;
 
-        const lastMonthOfQuarter = this.#verifyDateElementHasTwoDigits(
-          date.getMonth() + 3
-        );
-        const lastDayOfLastMonth = this.#getLastDayOfMonth(
-          `${year}-${lastMonthOfQuarter}-01`
-        );
+        const lastMonthOfQuarter = this.#verifyDateElementHasTwoDigits(date.getMonth() + 3);
+        const lastDayOfLastMonth = this.#getLastDayOfMonth(`${year}-${lastMonthOfQuarter}-01`);
         to = `${year}-${lastMonthOfQuarter}-${lastDayOfLastMonth} 23:59`;
         break;
       }
@@ -697,12 +640,8 @@ class EverythingDateRangePicker {
         formattedDate = `${year}-${semester}`;
         from = `${year}-${month}-01 00:00`;
 
-        const lastMonthOfSemester = this.#verifyDateElementHasTwoDigits(
-          date.getMonth() + 6
-        );
-        const lastDayOfLastMonth = this.#getLastDayOfMonth(
-          `${year}-${lastMonthOfSemester}-01`
-        );
+        const lastMonthOfSemester = this.#verifyDateElementHasTwoDigits(date.getMonth() + 6);
+        const lastDayOfLastMonth = this.#getLastDayOfMonth(`${year}-${lastMonthOfSemester}-01`);
         to = `${year}-${lastMonthOfSemester}-${lastDayOfLastMonth} 23:59`;
         break;
       }
@@ -724,20 +663,20 @@ class EverythingDateRangePicker {
    * Method that takes care of populate the start calendar with the start date
    */
   populateStartCalendar() {
-    const startDate = this.startDate;
+    const startDate = this.currentStartDate;
     const calendarHTML = this.#generateCalendar(startDate, 'left');
     this.startCalendar.innerHTML = calendarHTML;
-    this.#attachClickCellEvent(this.startCalendar);
+    this.#attachClickCellEvent(this.startCalendar, 'left');
   }
 
   /**
    * Method that takes care of populate the end calendar with the end date
    */
   populateEndCalendar() {
-    const endDate = this.endDate;
+    const endDate = this.currentEndDate;
     const calendarHTML = this.#generateCalendar(endDate, 'right');
     this.endCalendar.innerHTML = calendarHTML;
-    this.#attachClickCellEvent(this.endCalendar);
+    this.#attachClickCellEvent(this.endCalendar, 'right');
   }
 
   /**
@@ -754,14 +693,10 @@ class EverythingDateRangePicker {
     listOfRangesHTML += `</ul>`;
     this.rangesContainer.innerHTML = listOfRangesHTML;
 
-    const listElements = this.rangesContainer.querySelectorAll(
-      '.calendar-ranges-list-element'
-    );
+    const listElements = this.rangesContainer.querySelectorAll('.calendar-ranges-list-element');
 
     listElements.forEach((listElement) =>
-      listElement.addEventListener('click', (event) =>
-        this.clickRangeListElementEvent(event)
-      )
+      listElement.addEventListener('click', (event) => this.clickRangeListElementEvent(event))
     );
   }
 
@@ -783,6 +718,7 @@ class EverythingDateRangePicker {
     this.selectedEndDate = rangeObj.endDate;
 
     this.#timesClickedDate = 0;
+    this.#calendarGranularity = this.granularity;
 
     this.populateStartCalendar();
     this.populateEndCalendar();
@@ -801,8 +737,10 @@ class EverythingDateRangePicker {
     const titleOfCalendar = this.#generateTitleOfCalendar(granularity, date);
     if (sideOfCalendar === 'left') {
       this.#startCalendarMonth.innerHTML = titleOfCalendar;
+      this.#attachClickCalendarTitleEvent(this.#startCalendarMonth);
     } else {
       this.#endCalendarMonth.innerHTML = titleOfCalendar;
+      this.#attachClickCalendarTitleEvent(this.#endCalendarMonth);
     }
 
     let calendarHTML;
@@ -841,8 +779,7 @@ class EverythingDateRangePicker {
     const lastDayOfMonth = this.#getLastDayOfMonth(date);
 
     // Get the index of the week for the day the user selected as first day of the week
-    const indexOfFirstDayOfWeek =
-      this.#dayOfWeekNumberRelationObj[this.firstDayOfWeek];
+    const indexOfFirstDayOfWeek = this.#dayOfWeekNumberRelationObj[this.firstDayOfWeek];
 
     let dayOfMonth = 1;
     let weeksOfMonth = [];
@@ -916,9 +853,7 @@ class EverythingDateRangePicker {
       for (let j = 0; j < week.length; j++) {
         const day = week[j] || '';
         const dateValue = `${year}-${month}-${day}`;
-        const attributesToAdd = day
-          ? `class="calendar-clickable-cell" data-value="${dateValue}"`
-          : '';
+        const attributesToAdd = day ? `class="calendar-clickable-cell" data-value="${dateValue}"` : '';
 
         tableDaysHTML += `<td ${attributesToAdd}>${day}</td>`;
       }
@@ -1119,7 +1054,10 @@ class EverythingDateRangePicker {
         const month = date.getMonth();
         const monthName = this.#monthsStrings[month];
         const year = date.getFullYear();
-        titleOfCalendar = `${monthName} ${year}`;
+        titleOfCalendar = `
+          <span class="calendarTitleElement" data-value="month">${monthName}</span> 
+          <span class="calendarTitleElement" data-value="year">${year}</span>
+        `;
         break;
       }
       case 'month':
@@ -1127,7 +1065,7 @@ class EverythingDateRangePicker {
       case 'semester':
       case 'year': {
         const year = date.getFullYear();
-        titleOfCalendar = year;
+        titleOfCalendar = `<span class="calendarTitleElement" data-value="year">${year}</span>`;
         break;
       }
     }
@@ -1186,24 +1124,15 @@ class EverythingDateRangePicker {
       startDateEqualsEndDate,
     } = this.#checkDatesToRenderArrows();
 
-    const leftCalendarPreviousArrow = this.calendarContainer.querySelector(
-      '.left-calendar-previous-arrow'
-    );
-    const leftCalendarNextArrow = this.calendarContainer.querySelector(
-      '.left-calendar-next-arrow'
-    );
-    const rightCalendarPreviousArrow = this.calendarContainer.querySelector(
-      '.right-calendar-previous-arrow'
-    );
-    const rightCalendarNextArrow = this.calendarContainer.querySelector(
-      '.right-calendar-next-arrow'
-    );
+    const leftCalendarPreviousArrow = this.calendarContainer.querySelector('.left-calendar-previous-arrow');
+    const leftCalendarNextArrow = this.calendarContainer.querySelector('.left-calendar-next-arrow');
+    const rightCalendarPreviousArrow = this.calendarContainer.querySelector('.right-calendar-previous-arrow');
+    const rightCalendarNextArrow = this.calendarContainer.querySelector('.right-calendar-next-arrow');
 
     let display = startDateEqualsMinDate ? 'none' : 'block';
     leftCalendarPreviousArrow.style.display = display;
 
-    display =
-      startDateEqualsEndDate || startDateEqualsMaxDate ? 'none' : 'block';
+    display = startDateEqualsEndDate || startDateEqualsMaxDate ? 'none' : 'block';
     leftCalendarNextArrow.style.display = display;
 
     display = startDateEqualsEndDate || endDateEqualsMinDate ? 'none' : 'block';
@@ -1309,8 +1238,7 @@ class EverythingDateRangePicker {
         break;
       }
       case 'year': {
-        const yearsDifference =
-          secondDate.getFullYear() - firstDate.getFullYear();
+        const yearsDifference = secondDate.getFullYear() - firstDate.getFullYear();
 
         if (yearsDifference < 10) {
           areDateEquals = true;
