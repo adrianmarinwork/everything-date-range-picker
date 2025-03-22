@@ -8,12 +8,7 @@
     display: flex;
     align-items: center;
     cursor: pointer;
-
-    & .calendar-icon,
-    .selected-dates,
-    .arrow-icon {
-      margin-right: 10px;
-    }
+    gap: 0.75rem;
   }
 
   & .date-range-picker-calendar-container {

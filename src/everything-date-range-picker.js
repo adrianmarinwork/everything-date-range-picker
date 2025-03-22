@@ -245,7 +245,9 @@ class EverythingDateRangePicker {
       <div class="date-range-picker-container">
         <div class="date-range-picker-display">
           <span class="calendar-icon">📅</span>
-          <span class="selected-dates">Test...</span>
+          <span class="selected-start-date">1</span>
+          <span> → </span>
+          <span class="selected-end-date">2</span>
           <span class="arrow-icon">▼</span>
         </div>
         <div class="date-range-picker-calendar-container">
@@ -257,7 +259,8 @@ class EverythingDateRangePicker {
     this.display = this.container.querySelector('.date-range-picker-display');
     this.calendarContainer = this.container.querySelector('.date-range-picker-calendar-container');
 
-    this.selectedDatesElement = this.container.querySelector('.selected-dates');
+    this.selectedStartDateElement = this.container.querySelector('.selected-start-date');
+    this.selectedEndDateElement = this.container.querySelector('.selected-end-date');
 
     this.startCalendar = this.container.querySelector('.start-date-calendar');
     this.#startCalendarMonth = this.container.querySelector('.start-date-calendar-month');
@@ -284,6 +287,9 @@ class EverythingDateRangePicker {
     listOfCalendarArrows.forEach((calendarArrow) => {
       calendarArrow.addEventListener('click', (event) => this.changeRenderedCalendar(event));
     });
+
+    this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
+    this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
   }
 
   /**
@@ -480,7 +486,7 @@ class EverythingDateRangePicker {
 
         if (['month', 'quarter', 'semester'].includes(this.granularity)) {
           newGranularity = this.granularity;
-        } else if (this.#calendarGranularity === 'year' && ['hour', 'day'].includes(this.granularity)) {
+        } else if (this.#calendarGranularity === 'year' && ['hour', 'day', 'week'].includes(this.granularity)) {
           newGranularity = 'month';
         }
 
@@ -520,11 +526,13 @@ class EverythingDateRangePicker {
     if (this.singleCalendar || this.#timesClickedDate === 0) {
       this.selectedStartDate = new Date(dateClicked);
       this.#timesClickedDate = 1;
+      this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
       return;
     }
 
     this.selectedEndDate = new Date(dateClicked);
     this.#timesClickedDate = 0;
+    this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
   }
 
   #attachClickCalendarTitleEvent(calendarTitleElement) {
@@ -550,7 +558,7 @@ class EverythingDateRangePicker {
   }
 
   getSelectedDates() {
-    const startDateFormatted = this.getDateFormatedByGranularity(this.selectedStartDate);
+    const startDateFormatted = this.getDateFormattedByGranularity(this.selectedStartDate);
     let dates = {
       granularity: this.granularity,
       startDate: startDateFormatted.date,
@@ -563,7 +571,7 @@ class EverythingDateRangePicker {
       return dates;
     }
 
-    const endDateFormatted = this.getDateFormatedByGranularity(this.selectedEndDate);
+    const endDateFormatted = this.getDateFormattedByGranularity(this.selectedEndDate);
     dates.endDate = endDateFormatted.date;
     dates.endDateFrom = endDateFormatted.from;
     dates.endDateTo = endDateFormatted.to;
@@ -577,7 +585,7 @@ class EverythingDateRangePicker {
    * @param {Object} date The date object
    * @returns {Object} The formatted date, the from date of the granularity selected and the to date
    */
-  getDateFormatedByGranularity(date) {
+  getDateFormattedByGranularity(date) {
     const granularity = this.granularity;
     const day = this.#verifyDateElementHasTwoDigits(date.getDate());
     const month = this.#verifyDateElementHasTwoDigits(date.getMonth() + 1);
@@ -1262,6 +1270,23 @@ class EverythingDateRangePicker {
     lastDayOfMonth = lastDayOfMonth.getDate();
 
     return lastDayOfMonth;
+  }
+
+  /**
+   * Method that takes care of populate the calendar display with the selected date
+   * @param {Object} date The date object we are going to work with
+   * @param {String} calendarSide The side of the calendar we have to populate
+   */
+  #setDateCalendarDisplay(date, calendarSide) {
+    const dateFormatted = this.getDateFormattedByGranularity(date);
+
+    let dateCalendarDisplayElement = this.selectedStartDateElement;
+
+    if (calendarSide === 'right') {
+      dateCalendarDisplayElement = this.selectedEndDateElement;
+    }
+
+    dateCalendarDisplayElement.innerHTML = dateFormatted.date;
   }
 }
 
