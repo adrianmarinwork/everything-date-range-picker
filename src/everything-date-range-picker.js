@@ -623,7 +623,7 @@ class EverythingDateRangePicker {
   getDateFormattedByGranularity(date) {
     const granularity = this.granularity;
     const day = this.#verifyDateElementHasTwoDigits(date.getDate());
-    const month = this.#verifyDateElementHasTwoDigits(date.getMonth() + 1);
+    let month = this.#verifyDateElementHasTwoDigits(date.getMonth() + 1);
     const year = date.getFullYear();
     const hours = this.#verifyDateElementHasTwoDigits(date.getHours());
     const minutes = this.#verifyDateElementHasTwoDigits(date.getMinutes());
@@ -651,6 +651,26 @@ class EverythingDateRangePicker {
         break;
       }
       case 'quarter': {
+        // Let's handle the month to make sure the month is the first one of the quarter
+        switch (month) {
+          case '02':
+          case '03':
+            month = '01';
+            break;
+          case '05':
+          case '06':
+            month = '04';
+            break;
+          case '08':
+          case '09':
+            month = '7';
+            break;
+          case 11:
+          case 12:
+            month = 10;
+            break;
+        }
+
         let quarter = 'Q1';
 
         switch (month) {
@@ -668,12 +688,32 @@ class EverythingDateRangePicker {
         formattedDate = `${year}-${quarter}`;
         from = `${year}-${month}-01 00:00`;
 
-        const lastMonthOfQuarter = this.#verifyDateElementHasTwoDigits(date.getMonth() + 3);
+        const numberMonth = parseInt(month) - 1;
+        const sumOfMonths = numberMonth + 3 > 12 ? 12 : numberMonth + 3;
+        const lastMonthOfQuarter = this.#verifyDateElementHasTwoDigits(sumOfMonths);
         const lastDayOfLastMonth = this.#getLastDayOfMonth(`${year}-${lastMonthOfQuarter}-01`);
         to = `${year}-${lastMonthOfQuarter}-${lastDayOfLastMonth} 23:59`;
         break;
       }
       case 'semester': {
+        // Let's handle the month to make sure the month is the first one of the semester
+        switch (month) {
+          case '02':
+          case '03':
+          case '04':
+          case '05':
+          case '06':
+            month = '01';
+            break;
+          case '08':
+          case '09':
+          case 10:
+          case 11:
+          case 12:
+            month = '07';
+            break;
+        }
+
         let semester = 'H1';
 
         if (month === '07') {
@@ -683,7 +723,9 @@ class EverythingDateRangePicker {
         formattedDate = `${year}-${semester}`;
         from = `${year}-${month}-01 00:00`;
 
-        const lastMonthOfSemester = this.#verifyDateElementHasTwoDigits(date.getMonth() + 6);
+        const numberMonth = parseInt(month) - 1;
+        const sumOfMonths = numberMonth + 6 > 12 ? 12 : numberMonth + 6;
+        const lastMonthOfSemester = this.#verifyDateElementHasTwoDigits(sumOfMonths);
         const lastDayOfLastMonth = this.#getLastDayOfMonth(`${year}-${lastMonthOfSemester}-01`);
         to = `${year}-${lastMonthOfSemester}-${lastDayOfLastMonth} 23:59`;
         break;
