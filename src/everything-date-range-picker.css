@@ -1,27 +1,44 @@
-.date-range-picker-container {
-  position: relative;
-  display: inline-block;
+.main-date-range-picker-container {
+  display: flex;
+  gap: 0.75rem;
+  width: fit-content;
 
-  & .date-range-picker-display {
-    padding: 10px;
+  & .date-range-picker-granularity-dropdown-container {
     border: 1px solid #ccc;
-    display: flex;
-    align-items: center;
     cursor: pointer;
-    gap: 0.75rem;
+
+    & select.date-range-picker-granularity-dropdown {
+      height: 100%;
+      border: none;
+      padding: 10px;
+    }
   }
 
-  & .date-range-picker-calendar-container {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background-color: white;
-    border: 1px solid #ccc;
-    display: none;
-    z-index: 10;
+  & .date-range-picker-container {
+    position: relative;
+    display: inline-block;
 
-    & .calendar {
+    & .date-range-picker-display {
       padding: 10px;
+      border: 1px solid #ccc;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      gap: 0.75rem;
+    }
+
+    & .date-range-picker-calendar-container {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background-color: white;
+      border: 1px solid #ccc;
+      display: none;
+      z-index: 10;
+
+      & .calendar {
+        padding: 10px;
+      }
     }
   }
 }
