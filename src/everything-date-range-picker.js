@@ -119,6 +119,7 @@ class EverythingDateRangePicker {
     this.ranges = options.ranges || this.#defaultRanges;
     this.spanOfSelecteableDays = options.spanOfSelecteableDays || null;
     this.firstDayOfWeek = options.firstDayOfWeek || 'Monday';
+    this.showGranularityDropdown = options.showGranularityDropdown || false;
 
     // Lets make the different checks for the dates
     const isMinDateBigger = this.checkIfFirstDateBigger(this.minDate, this.startDate);
@@ -241,20 +242,54 @@ class EverythingDateRangePicker {
       <div class="calendar ranges-container"> list </div>
     `;
 
-    this.container.innerHTML = `
-      <div class="date-range-picker-container">
-        <div class="date-range-picker-display">
-          <span class="calendar-icon">📅</span>
-          <span class="selected-start-date">1</span>
-          <span> → </span>
-          <span class="selected-end-date">2</span>
-          <span class="arrow-icon">▼</span>
+    let granularityDropdownHTML = '';
+
+    if (this.showGranularityDropdown) {
+      const hourSelected = this.granularity === 'hour' ? 'selected' : '';
+      const daySelected = this.granularity === 'day' ? 'selected' : '';
+      const weekSelected = this.granularity === 'week' ? 'selected' : '';
+      const monthSelected = this.granularity === 'month' ? 'selected' : '';
+      const quarterSelected = this.granularity === 'quarter' ? 'selected' : '';
+      const semesterSelected = this.granularity === 'semester' ? 'selected' : '';
+      const yearSelected = this.granularity === 'year' ? 'selected' : '';
+
+      granularityDropdownHTML = `
+        <div class="date-range-picker-granularity-dropdown-container">
+          <select class="date-range-picker-granularity-dropdown">
+            <option value="hour" ${hourSelected}>Hour</option>
+            <option value="day" ${daySelected}>Day</option>
+            <option value="week" ${weekSelected}>Week</option>
+            <option value="month" ${monthSelected}>Month</option>
+            <option value="quarter" ${quarterSelected}>Quarter</option>
+            <option value="semester" ${semesterSelected}>Semester</option>
+            <option value="year" ${yearSelected}>Year</option>
+          </select>
         </div>
-        <div class="date-range-picker-calendar-container">
-          ${this.singleCalendar ? singleCalendar : doubleCalendar}  
+      `;
+    }
+
+    this.container.innerHTML = `
+      <div class="main-date-range-picker-container">
+        ${granularityDropdownHTML}
+        <div class="date-range-picker-container">
+          <div class="date-range-picker-display">
+            <span class="calendar-icon">📅</span>
+            <span class="selected-start-date">1</span>
+            <span> → </span>
+            <span class="selected-end-date">2</span>
+            <span class="arrow-icon">▼</span>
+          </div>
+          <div class="date-range-picker-calendar-container">
+            ${this.singleCalendar ? singleCalendar : doubleCalendar}  
+          </div>
         </div>
       </div>
     `;
+
+    if (this.showGranularityDropdown) {
+      this.granularityDropdown = this.container.querySelector('.date-range-picker-granularity-dropdown');
+      this.#attachOnChangeGranularityDropdownEvent();
+    }
 
     this.display = this.container.querySelector('.date-range-picker-display');
     this.calendarContainer = this.container.querySelector('.date-range-picker-calendar-container');
@@ -1287,6 +1322,20 @@ class EverythingDateRangePicker {
     }
 
     dateCalendarDisplayElement.innerHTML = dateFormatted.date;
+  }
+
+  #attachOnChangeGranularityDropdownEvent() {
+    this.granularityDropdown.addEventListener('change', (event) => {
+      const selectedGranularity = this.granularityDropdown.value;
+      this.granularity = selectedGranularity;
+      this.#calendarGranularity = selectedGranularity;
+
+      this.populateStartCalendar();
+      this.populateEndCalendar();
+      this.#setStateOfCalendarArrows();
+      this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
+      this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
+    });
   }
 }
 
