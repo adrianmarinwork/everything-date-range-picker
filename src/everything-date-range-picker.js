@@ -1574,8 +1574,24 @@ class EverythingDateRangePicker {
 
         if (isStart) {
           const currentStartDate = this.selectedStartDate;
-          const modifiedDate = isHours ? currentStartDate.setHours(value) : currentStartDate.setMinutes(value);
+          let modifiedDate = isHours ? currentStartDate.setHours(value) : currentStartDate.setMinutes(value);
           this.selectedStartDate = new Date(modifiedDate);
+
+          /* 
+            Let's handle the case where the selected start hour is the same as the end hour,
+            the day is the same and the minutes set in the end calendar are smaller than the
+            current start date minutes
+          */
+          const { startHours, endHours, endMinutes } = this.#getSelectedStartAndEndHoursMinutes();
+          const isStartEqualEnd = this.#checkIfDatesSameDay(this.selectedStartDate, this.selectedEndDate);
+
+          if (
+            isStartEqualEnd &&
+            startHours === endHours &&
+            this.selectedStartDate.getMinutes() > parseInt(endMinutes)
+          ) {
+            this.selectedStartDate = new Date(this.selectedStartDate.setMinutes(endMinutes));
+          }
         } else {
           const currentEndDate = this.selectedEndDate;
           const modifiedDate = isHours ? currentEndDate.setHours(value) : currentEndDate.setMinutes(value);
@@ -1583,6 +1599,8 @@ class EverythingDateRangePicker {
         }
 
         this.#populateTimePickers();
+        this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
+        this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
       });
     });
   }
