@@ -179,21 +179,25 @@ class EverythingDateRangePicker {
 
     const singleCalendar = `
       <div class="calendar">
-        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-          <div style="display: flex; justify-content: space-between;">
-            <div class="calendar-arrow left-calendar-previous-arrow"
-              ${hideLeftCalendarPreviousArrow ? 'style="display: none"' : ''}> 
-              <- 
-            </div>
-            <div class="start-date-calendar-month" style="flex: 1; text-align: center;">
-            </div>
-            <div class="calendar-arrow left-calendar-next-arrow"
-              ${hideLeftCalendarNextArrow ? 'style="display: none"' : ''}>
-              -> 
-            </div>
+        <div class="calendar-header">
+          <div class="calendar-arrow left-calendar-previous-arrow"
+            ${hideLeftCalendarPreviousArrow ? 'style="display: none"' : ''}> 
+            <- 
           </div>
-          <div class="start-date-calendar">
+          <div class="start-date-calendar-month">
           </div>
+          <div class="calendar-arrow left-calendar-next-arrow"
+            ${hideLeftCalendarNextArrow ? 'style="display: none"' : ''}>
+            -> 
+          </div>
+        </div>
+        <div class="start-date-calendar">
+        </div>
+        <div class="calendar-time-picker">
+          <select class="start-date-hours-dropdown">
+          </select>
+          <select class="start-date-minutes-dropdown">
+          </select>
         </div>
       </div>
     `;
@@ -204,42 +208,50 @@ class EverythingDateRangePicker {
 
     const doubleCalendar = `
       <div class="calendar">
-        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-          <div style="display: flex; justify-content: space-between;">
-            <div class="calendar-arrow left-calendar-previous-arrow"
-              ${hideLeftCalendarPreviousArrow ? 'style="display: none"' : ''}> 
-              <- 
-            </div>
-            <div class="start-date-calendar-month" style="flex: 1; text-align: center;">
-            </div>
-            <div class="calendar-arrow left-calendar-next-arrow"
-              ${hideLeftCalendarNextArrow ? 'style="display: none"' : ''}>
-              -> 
-            </div>
+        <div class="calendar-header">
+          <div class="calendar-arrow left-calendar-previous-arrow"
+            ${hideLeftCalendarPreviousArrow ? 'style="display: none"' : ''}> 
+            <- 
           </div>
-          <div class="start-date-calendar">
+          <div class="start-date-calendar-month">
           </div>
+          <div class="calendar-arrow left-calendar-next-arrow"
+            ${hideLeftCalendarNextArrow ? 'style="display: none"' : ''}>
+            -> 
+          </div>
+        </div>
+        <div class="start-date-calendar">
+        </div>
+        <div class="calendar-time-picker">
+          <select class="start-date-hours-dropdown">
+          </select>
+          <select class="start-date-minutes-dropdown">
+          </select>
         </div>
       </div>
       <div class="calendar">
-        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-          <div style="display: flex; justify-content: space-between;">
-            <div class="calendar-arrow right-calendar-previous-arrow"
-              ${hideRightCalendarPreviousArrow ? 'style="display: none"' : ''}>
-              <-
-            </div>
-            <div class="end-date-calendar-month" style="flex: 1; text-align: center;">
-            </div>
-            <div class="calendar-arrow right-calendar-next-arrow"
-              ${hideRightCalendarNextArrow ? 'style="display: none"' : ''}>
-              ->
-            </div>
+        <div class="calendar-header">
+          <div class="calendar-arrow right-calendar-previous-arrow"
+            ${hideRightCalendarPreviousArrow ? 'style="display: none"' : ''}>
+            <-
           </div>
-          <div class="end-date-calendar">
+          <div class="end-date-calendar-month">
+          </div>
+          <div class="calendar-arrow right-calendar-next-arrow"
+            ${hideRightCalendarNextArrow ? 'style="display: none"' : ''}>
+            ->
           </div>
         </div>
+        <div class="end-date-calendar">
+        </div>
+        <div class="calendar-time-picker">
+          <select class="end-date-hours-dropdown">
+          </select>
+          <select class="end-date-minutes-dropdown">
+          </select>
+        </div>
       </div>
-      <div class="calendar ranges-container"> list </div>
+      <div class="calendar ranges-container"></div>
     `;
 
     let granularityDropdownHTML = '';
@@ -280,7 +292,7 @@ class EverythingDateRangePicker {
             <span class="arrow-icon">▼</span>
           </div>
           <div class="date-range-picker-calendar-container">
-            ${this.singleCalendar ? singleCalendar : doubleCalendar}  
+            ${this.singleCalendar ? singleCalendar : doubleCalendar}
           </div>
         </div>
       </div>
@@ -315,6 +327,13 @@ class EverythingDateRangePicker {
 
     this.display.addEventListener('click', () => this.toggleCalendar());
     document.addEventListener('click', (event) => this.documentClickHandler(event));
+
+    if (this.granularity !== 'hour') {
+      this.#changeDisplayOfTimePickersContainers('none');
+    }
+
+    this.#populateTimePickers();
+    this.#attachOnChangeHoursMinutesDropdownsEvent();
 
     // Add click event listener to the arrows to navigate the months
     const listOfCalendarArrows = this.container.querySelectorAll('.calendar-arrow');
@@ -533,6 +552,11 @@ class EverythingDateRangePicker {
         }
 
         this.#calendarGranularity = newGranularity;
+
+        if (this.#calendarGranularity === 'hour') {
+          this.#changeDisplayOfTimePickersContainers('flex');
+        }
+
         this.populateStartCalendar();
         this.populateEndCalendar();
         this.#setStateOfCalendarArrows();
@@ -553,21 +577,34 @@ class EverythingDateRangePicker {
    * @param {Object} event The click object that contains the info of the event
    */
   saveClickedDate(event) {
-    const dateClicked = event.target.getAttribute('data-value');
+    let dateClicked = event.target.getAttribute('data-value');
 
     console.log('this: ', this);
     console.log('this.#timesClickedDate: ', this.#timesClickedDate);
+    console.log('dateClicked: ', dateClicked);
+
+    const { startHours, startMinutes, endHours, endMinutes } = this.#getSelectedStartAndEndHoursMinutes();
 
     if (this.singleCalendar || this.#timesClickedDate === 0) {
+      if (this.granularity === 'hour') {
+        dateClicked += ` ${startHours}:${startMinutes}`;
+      }
+
       this.selectedStartDate = new Date(dateClicked);
       this.#timesClickedDate = 1;
       this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
+      this.#populateTimePickers();
       return;
+    }
+
+    if (this.granularity === 'hour') {
+      dateClicked += ` ${endHours}:${endMinutes}`;
     }
 
     this.selectedEndDate = new Date(dateClicked);
     this.#timesClickedDate = 0;
     this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
+    this.#populateTimePickers();
   }
 
   #attachClickCalendarTitleEvent(calendarTitleElement) {
@@ -582,6 +619,11 @@ class EverythingDateRangePicker {
       }
 
       this.#calendarGranularity = clickedValue;
+
+      if (this.#calendarGranularity !== 'hour') {
+        this.#changeDisplayOfTimePickersContainers('none');
+      }
+
       this.populateStartCalendar();
       this.populateEndCalendar();
       this.#setStateOfCalendarArrows();
@@ -808,6 +850,9 @@ class EverythingDateRangePicker {
     this.populateStartCalendar();
     this.populateEndCalendar();
     this.#setStateOfCalendarArrows();
+    this.#populateTimePickers();
+    this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
+    this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
   }
 
   /**
@@ -1159,6 +1204,23 @@ class EverythingDateRangePicker {
   }
 
   /**
+   * Method used to check if two dates are the same day without taking into the hours and minutes
+   * @param {Object} date1 First date to compare
+   * @param {Object} date2 Second date to compare
+   * @returns {Boolean} Indicates if the dates are equal
+   */
+  #checkIfDatesSameDay(date1, date2) {
+    if (!date1 || !date2) {
+      return false;
+    }
+
+    const firstDate = new Date(new Date(date1).setHours(0, 0, 0, 0));
+    const secondDate = new Date(new Date(date2).setHours(0, 0, 0, 0));
+
+    return firstDate.valueOf() === secondDate.valueOf();
+  }
+
+  /**
    * Method to check if the first date sent as parameter is bigger than the second one
    * @param {Object} date1 First date to compare
    * @param {Object} date2 Second date to compare
@@ -1241,14 +1303,14 @@ class EverythingDateRangePicker {
     const granularity = this.#calendarGranularity;
 
     if (this.minDate) {
-      startDateEqualsMinDate = this.checkIfDatesEqualsBasedInGranularity(
+      startDateEqualsMinDate = this.#checkIfDatesFromSameGranularityPeriod(
         this.currentStartDate,
         this.minDate,
         granularity
       );
 
       if (this.currentEndDate && !this.singleCalendar) {
-        endDateEqualsMinDate = this.checkIfDatesEqualsBasedInGranularity(
+        endDateEqualsMinDate = this.#checkIfDatesFromSameGranularityPeriod(
           this.currentEndDate,
           this.minDate,
           granularity
@@ -1257,14 +1319,14 @@ class EverythingDateRangePicker {
     }
 
     if (this.maxDate) {
-      startDateEqualsMaxDate = this.checkIfDatesEqualsBasedInGranularity(
+      startDateEqualsMaxDate = this.#checkIfDatesFromSameGranularityPeriod(
         this.currentStartDate,
         this.maxDate,
         granularity
       );
 
       if (this.currentEndDate && !this.singleCalendar) {
-        endDateEqualsMaxDate = this.checkIfDatesEqualsBasedInGranularity(
+        endDateEqualsMaxDate = this.#checkIfDatesFromSameGranularityPeriod(
           this.currentEndDate,
           this.maxDate,
           granularity
@@ -1273,7 +1335,7 @@ class EverythingDateRangePicker {
     }
 
     if (this.currentEndDate && !this.singleCalendar) {
-      startDateEqualsEndDate = this.checkIfDatesEqualsBasedInGranularity(
+      startDateEqualsEndDate = this.#checkIfDatesFromSameGranularityPeriod(
         this.currentStartDate,
         this.currentEndDate,
         granularity
@@ -1291,13 +1353,14 @@ class EverythingDateRangePicker {
 
   /**
    * Method that takes care of checking if the dates sent are equals based in the selected
-   * granularity
+   * granularity, this method is used to verify that the arrows can still be clicked or
+   * not
    * @param {Object} firstDate First date to compare
    * @param {Object} secondDate Second date to compare
    * @param {String} granularity The granularity that is currently rendering the calendar
    * @returns {Boolean} Indicates if the dates are equals
    */
-  checkIfDatesEqualsBasedInGranularity(firstDate, secondDate, granularity) {
+  #checkIfDatesFromSameGranularityPeriod(firstDate, secondDate, granularity) {
     let areDateEquals = false;
 
     switch (granularity) {
@@ -1372,12 +1435,170 @@ class EverythingDateRangePicker {
       this.granularity = selectedGranularity;
       this.#calendarGranularity = selectedGranularity;
 
+      const timePickerVisibility = this.#calendarGranularity === 'hour' ? 'flex' : 'none';
+      this.#changeDisplayOfTimePickersContainers(timePickerVisibility);
       this.populateStartCalendar();
       this.populateEndCalendar();
       this.#setStateOfCalendarArrows();
       this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
       this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
     });
+  }
+
+  #changeDisplayOfTimePickersContainers(display) {
+    const timePickerContainers = this.container.querySelectorAll('.calendar-time-picker');
+    timePickerContainers.forEach((timePickerContainer) => {
+      timePickerContainer.style.display = display;
+    });
+  }
+
+  #populateTimePickers() {
+    const hoursFormat = '24h';
+    const startDateHoursDropdown = this.container.querySelector('.start-date-hours-dropdown');
+    const startDateMinutesDropdown = this.container.querySelector('.start-date-minutes-dropdown');
+    const endDateHoursDropdown = this.container.querySelector('.end-date-hours-dropdown');
+    const endDateMinutesDropdown = this.container.querySelector('.end-date-minutes-dropdown');
+
+    startDateHoursDropdown.innerHTML = '';
+    startDateMinutesDropdown.innerHTML = '';
+    endDateHoursDropdown.innerHTML = '';
+    endDateMinutesDropdown.innerHTML = '';
+
+    const isStartEqualMin = this.#checkIfDatesSameDay(this.selectedStartDate, this.minDate);
+    const isEndEqualMin = this.#checkIfDatesSameDay(this.selectedEndDate, this.minDate);
+    const isStartEqualMax = this.#checkIfDatesSameDay(this.selectedStartDate, this.maxDate);
+    const isEndEqualMax = this.#checkIfDatesSameDay(this.selectedEndDate, this.maxDate);
+    const isStartEqualEnd = this.#checkIfDatesSameDay(this.selectedStartDate, this.selectedEndDate);
+
+    const startDateHour = this.selectedStartDate.getHours();
+    const startDateMinutes = this.selectedStartDate.getMinutes();
+    const endDateHour = this.selectedEndDate.getHours();
+    const endDateMinutes = this.selectedEndDate.getMinutes();
+    const minDateHour = isStartEqualMin || isEndEqualMin ? this.minDate.getHours() : null;
+    const minDateMinutes = isStartEqualMin || isEndEqualMin ? this.minDate.getMinutes() : null;
+    const maxDateHour = isStartEqualMax || isEndEqualMax ? this.maxDate.getHours() : null;
+    const maxDateMinutes = isStartEqualMax || isEndEqualMax ? this.maxDate.getMinutes() : null;
+
+    for (let i = 0; i < 24; i++) {
+      const hour = this.#verifyDateElementHasTwoDigits(i);
+      const startOptionElement = document.createElement('option', { value: i });
+      startOptionElement.innerText = hour;
+
+      // If hour is the same as the hour of the start date, set as selected
+      const startIsSelected = i === startDateHour;
+      if (startIsSelected) {
+        startOptionElement.setAttribute('selected', 'selected');
+      }
+
+      if (
+        (isStartEqualMin && i < minDateHour) ||
+        (isStartEqualMax && i > maxDateHour) ||
+        (isStartEqualEnd && i > endDateHour)
+      ) {
+        startOptionElement.setAttribute('disabled', true);
+      }
+
+      startDateHoursDropdown.appendChild(startOptionElement);
+
+      const endOptionElement = document.createElement('option', { value: i });
+      endOptionElement.innerText = hour;
+
+      // If hour is the same as the hour of the end date, set as selected
+      const endIsSelected = i === endDateHour;
+      if (endIsSelected) {
+        endOptionElement.setAttribute('selected', 'selected');
+      }
+
+      if (
+        (isEndEqualMin && i < minDateHour) ||
+        (isEndEqualMax && i > maxDateHour) ||
+        (isStartEqualEnd && i < startDateHour)
+      ) {
+        endOptionElement.setAttribute('disabled', true);
+      }
+
+      endDateHoursDropdown.appendChild(endOptionElement);
+    }
+
+    for (let i = 0; i < 60; i++) {
+      const minute = this.#verifyDateElementHasTwoDigits(i);
+      const startOptionElement = document.createElement('option', { value: i });
+      startOptionElement.innerText = minute;
+
+      // If minute is the same as the minute of the start date, set as selected
+      const startIsSelected = i === startDateMinutes;
+      if (startIsSelected) {
+        startOptionElement.setAttribute('selected', 'selected');
+      }
+
+      if (
+        (isStartEqualMin && startDateHour === minDateHour && i < minDateMinutes) ||
+        (isStartEqualMax && startDateHour === maxDateHour && i > maxDateMinutes) ||
+        (isStartEqualEnd && startDateHour === endDateHour && i > endDateMinutes)
+      ) {
+        startOptionElement.setAttribute('disabled', true);
+      }
+
+      startDateMinutesDropdown.appendChild(startOptionElement);
+
+      const endOptionElement = document.createElement('option', { value: i });
+      endOptionElement.innerText = minute;
+
+      // If minute is the same as the minute of the end date, set as selected
+      const endIsSelected = i === endDateMinutes;
+      if (endIsSelected) {
+        endOptionElement.setAttribute('selected', 'selected');
+      }
+
+      if (
+        (isEndEqualMin && endDateHour === minDateHour && i < minDateMinutes) ||
+        (isEndEqualMax && endDateHour === maxDateHour && i > maxDateMinutes) ||
+        (isStartEqualEnd && startDateHour === endDateHour && i < startDateMinutes)
+      ) {
+        endOptionElement.setAttribute('disabled', true);
+      }
+
+      endDateMinutesDropdown.appendChild(endOptionElement);
+    }
+  }
+
+  #attachOnChangeHoursMinutesDropdownsEvent() {
+    const hoursMinutesDropdownsElements = this.container.querySelectorAll('.calendar-time-picker select');
+    hoursMinutesDropdownsElements.forEach((dropdownElement) => {
+      dropdownElement.addEventListener('change', (event) => {
+        const target = event.target;
+        const value = target.value;
+        const targetClass = target.classList.value;
+        const isStart = targetClass.includes('start');
+        const isHours = targetClass.includes('hours');
+
+        if (isStart) {
+          const currentStartDate = this.selectedStartDate;
+          const modifiedDate = isHours ? currentStartDate.setHours(value) : currentStartDate.setMinutes(value);
+          this.selectedStartDate = new Date(modifiedDate);
+        } else {
+          const currentEndDate = this.selectedEndDate;
+          const modifiedDate = isHours ? currentEndDate.setHours(value) : currentEndDate.setMinutes(value);
+          this.selectedEndDate = new Date(modifiedDate);
+        }
+
+        this.#populateTimePickers();
+      });
+    });
+  }
+
+  #getSelectedStartAndEndHoursMinutes() {
+    const startDateHoursDropdown = this.container.querySelector('.start-date-hours-dropdown');
+    const startDateMinutesDropdown = this.container.querySelector('.start-date-minutes-dropdown');
+    const endDateHoursDropdown = this.container.querySelector('.end-date-hours-dropdown');
+    const endDateMinutesDropdown = this.container.querySelector('.end-date-minutes-dropdown');
+
+    return {
+      startHours: startDateHoursDropdown.value,
+      startMinutes: startDateMinutesDropdown.value,
+      endHours: endDateHoursDropdown.value,
+      endMinutes: endDateMinutesDropdown.value,
+    };
   }
 }
 
