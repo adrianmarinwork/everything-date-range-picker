@@ -38,6 +38,27 @@
 
       & .calendar {
         padding: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+
+        & .calendar-header {
+          display: flex;
+          justify-content: space-between;
+
+          & .start-date-calendar-month,
+          & .end-date-calendar-month {
+            flex: 1;
+            text-align: center;
+          }
+        }
+
+        & .calendar-time-picker {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+        }
       }
     }
   }
