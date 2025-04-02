@@ -112,14 +112,20 @@ class EverythingDateRangePicker {
     this.maxDate = options.maxDate || null;
     this.#checkValidityOfDateType('maxDate');
     this.timezone = options.timezone || null;
-    this.showTimezoneChooser = options.showTimezoneChooser || false;
+    this.showTimezoneChooser = this.#checkIfParameterExist(options.showTimezoneChooser, false);
     this.granularity = options.granularity || 'hour';
     this.#calendarGranularity = this.granularity;
-    this.singleCalendar = options.singleCalendar || false;
+    this.singleCalendar = this.#checkIfParameterExist(options.singleCalendar, false);
     this.ranges = options.ranges || this.#defaultRanges;
     this.spanOfSelecteableDays = options.spanOfSelecteableDays || null;
     this.firstDayOfWeek = options.firstDayOfWeek || 'Monday';
-    this.showGranularityDropdown = options.showGranularityDropdown || false;
+    this.showGranularityDropdown = this.#checkIfParameterExist(options.showGranularityDropdown, false);
+    this.changeGranularityCallback = options.changeGranularityCallback || null;
+    this.showApplyButton = this.#checkIfParameterExist(options.showApplyButton, true);
+    this.applyButtonText = options.applyButtonText || 'Apply';
+    this.applyDatesCallback = options.applyDatesCallback || null;
+    this.changeStartDateCallback = options.changeStartDateCallback || null;
+    this.changeEndDateCallback = options.changeEndDateCallback || null;
 
     // Lets make the different checks for the dates
     const isMinDateBigger = this.checkIfFirstDateBigger(this.minDate, this.startDate);
@@ -161,6 +167,14 @@ class EverythingDateRangePicker {
     if (typeof this[property] === 'string') {
       this[property] = new Date(this[property]);
     }
+  }
+
+  #checkIfParameterExist(parameterValue, defaultValue) {
+    if (parameterValue !== null && parameterValue !== undefined) {
+      return parameterValue;
+    }
+
+    return defaultValue;
   }
 
   initDatePicker() {
@@ -277,6 +291,16 @@ class EverythingDateRangePicker {
       `;
     }
 
+    let applyButtonHTML = '';
+
+    if (this.showApplyButton) {
+      applyButtonHTML = `
+        <button class="date-range-picker-apply-button">
+          ${this.applyButtonText}
+        </button>
+      `;
+    }
+
     this.container.innerHTML = `
       <div class="main-date-range-picker-container">
         ${granularityDropdownHTML}
@@ -289,7 +313,12 @@ class EverythingDateRangePicker {
             <span class="arrow-icon">▼</span>
           </div>
           <div class="date-range-picker-calendar-container">
-            ${this.singleCalendar ? singleCalendar : doubleCalendar}
+            <div class="date-range-picker-calendar-body">
+              ${this.singleCalendar ? singleCalendar : doubleCalendar}
+            </div>
+            <div class="date-range-picker-footer-container">
+              ${applyButtonHTML}
+            </div>
           </div>
         </div>
       </div>
@@ -341,6 +370,17 @@ class EverythingDateRangePicker {
       calendarArrow.addEventListener('click', (event) => this.changeRenderedCalendar(event));
     });
 
+    if (this.showApplyButton) {
+      const applyButton = this.container.querySelector('.date-range-picker-apply-button');
+      applyButton.addEventListener('click', (event) => {
+        this.toggleCalendar();
+
+        if (this.applyDatesCallback) {
+          this.applyDatesCallback();
+        }
+      });
+    }
+
     this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
     this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
   }
@@ -350,7 +390,7 @@ class EverythingDateRangePicker {
    */
   toggleCalendar() {
     const currentDisplay = this.calendarContainer.style.display;
-    this.calendarContainer.style.display = currentDisplay === 'flex' ? 'none' : 'flex';
+    this.calendarContainer.style.display = currentDisplay === 'block' ? 'none' : 'block';
   }
 
   /**
@@ -620,6 +660,10 @@ class EverythingDateRangePicker {
       this.#timesClickedDate = 1;
       this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
       this.#populateTimePickers();
+
+      if (this.changeStartDateCallback) {
+        this.changeStartDateCallback();
+      }
       return;
     }
 
@@ -631,6 +675,10 @@ class EverythingDateRangePicker {
     this.#timesClickedDate = 0;
     this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
     this.#populateTimePickers();
+
+    if (this.changeEndDateCallback) {
+      this.changeEndDateCallback();
+    }
   }
 
   #attachClickCalendarTitleEvent(calendarTitleElement) {
@@ -881,6 +929,14 @@ class EverythingDateRangePicker {
     this.#populateTimePickers();
     this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
     this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
+
+    if (this.changeStartDateCallback) {
+      this.changeStartDateCallback();
+    }
+
+    if (this.changeEndDateCallback) {
+      this.changeEndDateCallback();
+    }
   }
 
   /**
@@ -1472,6 +1528,10 @@ class EverythingDateRangePicker {
       this.#setStateOfCalendarArrows();
       this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
       this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
+
+      if (this.changeGranularityCallback) {
+        this.changeGranularityCallback();
+      }
     });
   }
 
@@ -1657,6 +1717,12 @@ class EverythingDateRangePicker {
         this.#populateTimePickers();
         this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
         this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
+
+        if (isStart && this.changeStartDateCallback) {
+          this.changeStartDateCallback();
+        } else if (this.changeEndDateCallback) {
+          this.changeEndDateCallback();
+        }
       });
     });
   }

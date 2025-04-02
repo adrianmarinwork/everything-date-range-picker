@@ -38,6 +38,19 @@
           maxDate: '2025-11-15 20:05:29',
           // singleCalendar: true,
           showGranularityDropdown: true,
+          // showApplyButton: false,
+          changeGranularityCallback: () => {
+            console.log('Me he ejucutado tras cambiar la granularidad');
+          },
+          changeStartDateCallback: () => {
+            console.log('Me he ejucutado tras cambiar la start date');
+          },
+          changeEndDateCallback: () => {
+            console.log('Me he ejucutado tras cambiar la end date');
+          },
+          applyDatesCallback: () => {
+            console.log('Me he ejucutado tras aplicar fechas');
+          },
         });
 
         console.log('My Start Date: ', datePicker.startDate);
