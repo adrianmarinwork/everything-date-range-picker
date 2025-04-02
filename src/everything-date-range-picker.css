@@ -36,30 +36,56 @@
       display: none;
       z-index: 10;
 
-      & .calendar {
-        padding: 10px;
+      & .date-range-picker-calendar-body {
         display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
+        max-height: 220px;
 
-        & .calendar-header {
+        & .calendar {
+          padding: 10px;
           display: flex;
-          justify-content: space-between;
+          flex-direction: column;
+          gap: 0.5rem;
 
-          & .start-date-calendar-month,
-          & .end-date-calendar-month {
-            flex: 1;
-            text-align: center;
+          & .calendar-header {
+            display: flex;
+            justify-content: space-between;
+
+            & .start-date-calendar-month,
+            & .end-date-calendar-month {
+              flex: 1;
+              text-align: center;
+            }
+          }
+
+          & .calendar-time-picker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+          }
+
+          &.ranges-container {
+            overflow: auto;
+            scrollbar-width: thin;
+
+            & .calendar-ranges-list {
+              list-style-type: none;
+              margin: 0;
+              padding: 0;
+
+              & .calendar-ranges-list-element {
+                margin: 0.2rem;
+              }
+            }
           }
         }
-
-        & .calendar-time-picker {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-        }
       }
+    }
+
+    & .date-range-picker-footer-container {
+      display: flex;
+      justify-content: end;
+      padding: 10px;
     }
   }
 }
