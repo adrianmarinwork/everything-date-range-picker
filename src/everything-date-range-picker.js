@@ -632,27 +632,44 @@ class EverythingDateRangePicker {
       if (this.granularity === 'hour') {
         const isStartEqualMax = this.#checkIfDatesSameDay(new Date(dateClicked), this.maxDate);
         const isStartEqualEnd = this.#checkIfDatesSameDay(new Date(dateClicked), this.selectedEndDate);
+        const isStartEqualMin = this.#checkIfDatesSameDay(new Date(dateClicked), this.minDate);
         const maxDateHours = this.maxDate ? this.maxDate.getHours() : false;
         const maxDateMinutes = this.maxDate ? this.maxDate.getMinutes() : false;
+        const minDateHours = this.minDate ? this.minDate.getHours() : false;
+        const minDateMinutes = this.minDate ? this.minDate.getMinutes() : false;
 
-        if (this.singleCalendar && this.maxDate && isStartEqualMax) {
-          if (parseInt(startHours) > maxDateHours) {
-            startHours = this.#verifyDateElementHasTwoDigits(maxDateHours);
+        // Start Date hours or minutes smaller than Min Date
+        if (this.minDate && isStartEqualMin) {
+          if (parseInt(startHours) < minDateHours) {
+            startHours = minDateHours;
           }
 
-          if (`${startHours}` === `${maxDateHours}` && this.selectedStartDate.getMinutes() > maxDateMinutes) {
-            startMinutes = this.#verifyDateElementHasTwoDigits(maxDateMinutes);
-          }
-        } else if (!this.singleCalendar && isStartEqualEnd) {
-          if (parseInt(startHours) > parseInt(endHours)) {
-            startHours = this.#verifyDateElementHasTwoDigits(endHours);
-          }
-
-          if (`${startHours}` === `${endHours}` && this.selectedStartDate.getMinutes() > parseInt(endMinutes)) {
-            startMinutes = this.#verifyDateElementHasTwoDigits(endMinutes);
+          if (`${startHours}` === `${minDateHours}` && this.selectedStartDate.getMinutes() < minDateMinutes) {
+            startMinutes = minDateMinutes;
           }
         }
 
+        // Start Date hours or minutes bigger than End Date or Max Date
+        if (this.singleCalendar && this.maxDate && isStartEqualMax) {
+          if (parseInt(startHours) > maxDateHours) {
+            startHours = maxDateHours;
+          }
+
+          if (`${startHours}` === `${maxDateHours}` && this.selectedStartDate.getMinutes() > maxDateMinutes) {
+            startMinutes = maxDateMinutes;
+          }
+        } else if (!this.singleCalendar && isStartEqualEnd) {
+          if (parseInt(startHours) > parseInt(endHours)) {
+            startHours = endHours;
+          }
+
+          if (`${startHours}` === `${endHours}` && this.selectedStartDate.getMinutes() > parseInt(endMinutes)) {
+            startMinutes = endMinutes;
+          }
+        }
+
+        startHours = this.#verifyDateElementHasTwoDigits(startHours);
+        startMinutes = this.#verifyDateElementHasTwoDigits(startMinutes);
         dateClicked += ` ${startHours}:${startMinutes}`;
       }
 
@@ -668,6 +685,33 @@ class EverythingDateRangePicker {
     }
 
     if (this.granularity === 'hour') {
+      const isEndEqualMax = this.#checkIfDatesSameDay(new Date(dateClicked), this.maxDate);
+      const isEndEqualStart = this.#checkIfDatesSameDay(new Date(dateClicked), this.selectedStartDate);
+      const maxDateHours = this.maxDate ? this.maxDate.getHours() : false;
+      const maxDateMinutes = this.maxDate ? this.maxDate.getMinutes() : false;
+
+      // End Date hours or minutes smaller than Start Date
+      if (isEndEqualStart) {
+        if (parseInt(endHours) < parseInt(startHours)) {
+          endHours = startHours;
+        }
+
+        if (`${endHours}` === `${startHours}` && this.selectedEndDate.getMinutes() < parseInt(startMinutes)) {
+          endMinutes = startMinutes;
+        }
+      }
+
+      // End Date hours or minutes bigger than Max Date
+      if (this.maxDate && isEndEqualMax) {
+        if (parseInt(endHours) > maxDateHours) {
+          endHours = maxDateHours;
+        }
+
+        if (`${endHours}` === `${maxDateHours}` && this.selectedEndDate.getMinutes() > maxDateMinutes) {
+          endMinutes = maxDateMinutes;
+        }
+      }
+
       dateClicked += ` ${endHours}:${endMinutes}`;
     }
 
@@ -1689,6 +1733,24 @@ class EverythingDateRangePicker {
             this.selectedStartDate = new Date(this.selectedStartDate.setMinutes(endMinutes));
           }
 
+          /*
+            Let's handle the case where the selected start hour is the same as the min hour,
+            the day is the same and the minutes set in the start calendar are smaller than the min date
+            minutes
+          */
+          const isStartEqualmin = this.#checkIfDatesSameDay(this.selectedStartDate, this.minDate);
+          const minDateHours = this.minDate ? this.minDate.getHours() : false;
+          const minDateMinutes = this.minDate ? this.minDate.getMinutes() : false;
+
+          if (
+            this.minDate &&
+            isStartEqualmin &&
+            parseInt(startHours) === minDateHours &&
+            this.selectedStartDate.getMinutes() < minDateMinutes
+          ) {
+            this.selectedStartDate = new Date(this.selectedStartDate.setMinutes(minDateMinutes));
+          }
+
           const isStartEqualMax = this.#checkIfDatesSameDay(this.selectedStartDate, this.maxDate);
           const maxDateHours = this.maxDate ? this.maxDate.getHours() : false;
           const maxDateMinutes = this.maxDate ? this.maxDate.getMinutes() : false;
@@ -1703,7 +1765,7 @@ class EverythingDateRangePicker {
             this.singleCalendar &&
             this.maxDate &&
             isStartEqualMax &&
-            startHours === `${maxDateHours}` &&
+            parseInt(startHours) === maxDateHours &&
             this.selectedStartDate.getMinutes() > maxDateMinutes
           ) {
             this.selectedStartDate = new Date(this.selectedStartDate.setMinutes(maxDateMinutes));
@@ -1712,6 +1774,35 @@ class EverythingDateRangePicker {
           const currentEndDate = this.selectedEndDate;
           const modifiedDate = isHours ? currentEndDate.setHours(value) : currentEndDate.setMinutes(value);
           this.selectedEndDate = new Date(modifiedDate);
+
+          /* 
+            Let's handle the case where the selected end hour is the same as the start hour,
+            the day is the same and the minutes set in the start calendar are bigger than the
+            current end date minutes
+          */
+          const { startHours, startMinutes, endHours } = this.#getSelectedStartAndEndHoursMinutes();
+          const isEndEqualStart = this.#checkIfDatesSameDay(this.selectedEndDate, this.selectedStartDate);
+
+          if (
+            isEndEqualStart &&
+            endHours === startHours &&
+            this.selectedEndDate.getMinutes() < parseInt(startMinutes)
+          ) {
+            this.selectedEndDate = new Date(this.selectedEndDate.setMinutes(startMinutes));
+          }
+
+          const isEndEqualMax = this.#checkIfDatesSameDay(this.selectedEndDate, this.maxDate);
+          const maxDateHours = this.maxDate ? this.maxDate.getHours() : false;
+          const maxDateMinutes = this.maxDate ? this.maxDate.getMinutes() : false;
+
+          if (
+            this.maxDate &&
+            isEndEqualMax &&
+            parseInt(endHours) === maxDateHours &&
+            this.selectedEndDate.getMinutes() > maxDateMinutes
+          ) {
+            this.selectedEndDate = new Date(this.selectedEndDate.setMinutes(maxDateMinutes));
+          }
         }
 
         this.#populateTimePickers();
