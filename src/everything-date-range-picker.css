@@ -3,6 +3,11 @@
   gap: 0.75rem;
   width: fit-content;
 
+  & [disabled] {
+    pointer-events: none;
+    opacity: 0.6;
+  }
+
   & .date-range-picker-granularity-dropdown-container {
     border: 1px solid #ccc;
     cursor: pointer;

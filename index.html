@@ -38,6 +38,24 @@
           // maxDate: '2025-11-15 20:05:29',
           // singleCalendar: true,
           showGranularityDropdown: true,
+          // hideRanges: true,
+          appendToDefaultRanges: true,
+          customRanges: [
+            {
+              label: 'Mi rango',
+              startDate: new Date(new Date().setHours(0, 0)),
+              endDate: new Date(),
+              position: 2,
+            },
+            {
+              label: 'Segundo rango',
+              startDate: new Date(new Date().setHours(0, 0)),
+              endDate: new Date(),
+              position: 4,
+            },
+          ],
+          // hiddenRanges: ['Today', 'Last 7 Days'],
+          disabledRanges: ['Yesterday', 'Last 30 Days', 'Mi rango'],
           // showApplyButton: false,
           changeGranularityCallback: () => {
             console.log('Me he ejucutado tras cambiar la granularidad');
