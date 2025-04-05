@@ -116,7 +116,12 @@ class EverythingDateRangePicker {
     this.granularity = options.granularity || 'hour';
     this.#calendarGranularity = this.granularity;
     this.singleCalendar = this.#checkIfParameterExist(options.singleCalendar, false);
-    this.ranges = options.ranges || this.#defaultRanges;
+    this.customRanges = options.customRanges || [];
+    this.ranges = this.#defaultRanges;
+    this.hideRanges = this.#checkIfParameterExist(options.hideRanges, false);
+    this.appendToDefaultRanges = this.#checkIfParameterExist(options.appendToDefaultRanges, false);
+    this.hiddenRanges = options.hiddenRanges || [];
+    this.disabledRanges = options.disabledRanges || [];
     this.spanOfSelecteableDays = options.spanOfSelecteableDays || null;
     this.firstDayOfWeek = options.firstDayOfWeek || 'Monday';
     this.showGranularityDropdown = this.#checkIfParameterExist(options.showGranularityDropdown, false);
@@ -930,11 +935,38 @@ class EverythingDateRangePicker {
    * Method that takes care of populate the ranges
    */
   populateRangesContainer() {
+    if (this.hideRanges) {
+      this.rangesContainer.style.display = 'none';
+      return;
+    }
+
+    if (this.appendToDefaultRanges) {
+      const updatedRanges = [...this.ranges];
+
+      for (let i = 0; i < this.customRanges.length; i++) {
+        const customRange = this.customRanges[i];
+        if (customRange.position) {
+          updatedRanges.splice(customRange.position, 0, customRange);
+        } else {
+          updatedRanges.push(customRange);
+        }
+      }
+
+      this.ranges = updatedRanges;
+    } else if (this.customRanges.length) {
+      this.ranges = this.customRanges;
+    }
+
     let listOfRangesHTML = `<ul class="calendar-ranges-list">`;
 
-    for (let i = 0; i < this.#defaultRanges.length; i++) {
-      let range = this.#defaultRanges[i];
-      listOfRangesHTML += `<li class="calendar-ranges-list-element">${range.label}</li>`;
+    for (let i = 0; i < this.ranges.length; i++) {
+      let range = this.ranges[i];
+      const isHidden = this.hiddenRanges.some((rangeToHide) => rangeToHide === range.label);
+      const isDisabled = this.disabledRanges.some((rangeToDisable) => rangeToDisable === range.label);
+      const style = isHidden ? 'style="display: none"' : '';
+      const disabledAttr = isDisabled ? 'disabled' : '';
+
+      listOfRangesHTML += `<li class="calendar-ranges-list-element" ${style} ${disabledAttr}>${range.label}</li>`;
     }
 
     listOfRangesHTML += `</ul>`;
