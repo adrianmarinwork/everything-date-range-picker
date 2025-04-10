@@ -129,6 +129,8 @@ class EverythingDateRangePicker {
     this.showApplyButton = this.#checkIfParameterExist(options.showApplyButton, true);
     this.applyButtonText = options.applyButtonText || 'Apply';
     this.applyDatesCallback = options.applyDatesCallback || null;
+    this.showSetStartDayButton = this.#checkIfParameterExist(options.showSetStartDayButton, false);
+    this.showSetEndDayButton = this.#checkIfParameterExist(options.showSetEndDayButton, false);
     this.changeStartDateCallback = options.changeStartDateCallback || null;
     this.changeEndDateCallback = options.changeEndDateCallback || null;
 
@@ -210,17 +212,38 @@ class EverythingDateRangePicker {
         </div>
         <div class="start-date-calendar">
         </div>
-        <div class="calendar-time-picker">
-          <select class="start-date-hours-dropdown">
-          </select>
-          <select class="start-date-minutes-dropdown">
-          </select>
+        <div class="calendar-footer">
+          <div class="calendar-time-picker">
+            <select class="start-date-hours-dropdown">
+            </select>
+            <select class="start-date-minutes-dropdown">
+            </select>
+          </div>
         </div>
       </div>
     `;
 
     const hideRightCalendarPreviousArrow = endDateEqualsMinDate || startDateEqualsEndDate;
     const hideRightCalendarNextArrow = endDateEqualsMaxDate;
+
+    let setStartDayButton = '';
+    let setEndDayButton = '';
+
+    if (this.showSetStartDayButton) {
+      setStartDayButton = `
+        <button class="calendar-set-start-end-day-button" data-value="start">
+          Set Start Day
+        </button>
+      `;
+    }
+
+    if (this.showSetEndDayButton) {
+      setEndDayButton = `
+        <button class="calendar-set-start-end-day-button" data-value="end">
+          Set End Day
+        </button>
+      `;
+    }
 
     const doubleCalendar = `
       <div class="calendar">
@@ -238,11 +261,14 @@ class EverythingDateRangePicker {
         </div>
         <div class="start-date-calendar">
         </div>
-        <div class="calendar-time-picker">
-          <select class="start-date-hours-dropdown">
-          </select>
-          <select class="start-date-minutes-dropdown">
-          </select>
+        <div class="calendar-footer">
+          ${setStartDayButton}
+          <div class="calendar-time-picker">
+            <select class="start-date-hours-dropdown">
+            </select>
+            <select class="start-date-minutes-dropdown">
+            </select>
+          </div>
         </div>
       </div>
       <div class="calendar">
@@ -260,11 +286,14 @@ class EverythingDateRangePicker {
         </div>
         <div class="end-date-calendar">
         </div>
-        <div class="calendar-time-picker">
-          <select class="end-date-hours-dropdown">
-          </select>
-          <select class="end-date-minutes-dropdown">
-          </select>
+        <div class="calendar-footer">
+          <div class="calendar-time-picker">
+            <select class="end-date-hours-dropdown">
+            </select>
+            <select class="end-date-minutes-dropdown">
+            </select>
+          </div>
+          ${setEndDayButton}
         </div>
       </div>
       <div class="calendar ranges-container"></div>
@@ -362,7 +391,7 @@ class EverythingDateRangePicker {
     document.addEventListener('click', (event) => this.documentClickHandler(event));
 
     if (this.granularity !== 'hour') {
-      this.#changeDisplayOfTimePickersContainers('none');
+      this.#changeDisplayOfCalendarFooterContainers('none');
     }
 
     this.#populateTimePickers();
@@ -374,6 +403,14 @@ class EverythingDateRangePicker {
     listOfCalendarArrows.forEach((calendarArrow) => {
       calendarArrow.addEventListener('click', (event) => this.changeRenderedCalendar(event));
     });
+
+    if (this.showSetStartDayButton || this.showSetEndDayButton) {
+      const endStartButtons = this.container.querySelectorAll('.calendar-set-start-end-day-button');
+
+      endStartButtons.forEach((endStartbutton) => {
+        endStartbutton.addEventListener('click', (event) => this.#setStartOrEndOfDay(event));
+      });
+    }
 
     if (this.showApplyButton) {
       const applyButton = this.container.querySelector('.date-range-picker-apply-button');
@@ -600,7 +637,7 @@ class EverythingDateRangePicker {
         this.#calendarGranularity = newGranularity;
 
         if (this.#calendarGranularity === 'hour') {
-          this.#changeDisplayOfTimePickersContainers('flex');
+          this.#changeDisplayOfCalendarFooterContainers('flex');
         }
 
         this.populateStartCalendar();
@@ -748,7 +785,7 @@ class EverythingDateRangePicker {
       this.#calendarGranularity = clickedValue;
 
       if (this.#calendarGranularity !== 'hour') {
-        this.#changeDisplayOfTimePickersContainers('none');
+        this.#changeDisplayOfCalendarFooterContainers('none');
       }
 
       this.populateStartCalendar();
@@ -1556,7 +1593,7 @@ class EverythingDateRangePicker {
       this.#calendarGranularity = selectedGranularity;
 
       const timePickerVisibility = this.#calendarGranularity === 'hour' ? 'flex' : 'none';
-      this.#changeDisplayOfTimePickersContainers(timePickerVisibility);
+      this.#changeDisplayOfCalendarFooterContainers(timePickerVisibility);
       this.populateStartCalendar();
       this.#setStateOfCalendarArrows();
       this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
@@ -1571,8 +1608,8 @@ class EverythingDateRangePicker {
     });
   }
 
-  #changeDisplayOfTimePickersContainers(display) {
-    const timePickerContainers = this.container.querySelectorAll('.calendar-time-picker');
+  #changeDisplayOfCalendarFooterContainers(display) {
+    const timePickerContainers = this.container.querySelectorAll('.calendar-footer');
     timePickerContainers.forEach((timePickerContainer) => {
       timePickerContainer.style.display = display;
     });
@@ -2010,6 +2047,54 @@ class EverythingDateRangePicker {
     }
 
     return { semester, firstMonthSemester };
+  }
+
+  #setStartOrEndOfDay(event) {
+    const clickedButtonSide = event.target.getAttribute('data-value');
+    const isEnd = clickedButtonSide === 'end';
+    const hoursSelectClass = `${clickedButtonSide}-date-hours-dropdown`;
+    const minutesSelectClass = `${clickedButtonSide}-date-minutes-dropdown`;
+    const listOfHoursOptions = this.container.querySelectorAll(`.${hoursSelectClass} option:not([disabled])`);
+    let hour = listOfHoursOptions[0].value;
+
+    /* 
+      We are first setting the hours and populating the time picker because the first hour of the day
+      available could have the minutes limited, like in the case of min and max dates
+    */
+    if (isEnd) {
+      hour = listOfHoursOptions[listOfHoursOptions.length - 1].value;
+
+      let updatedEndDate = new Date(this.selectedEndDate.setHours(hour));
+      this.selectedEndDate = updatedEndDate;
+    } else {
+      let updatedStartDate = new Date(this.selectedStartDate.setHours(hour));
+      this.selectedStartDate = updatedStartDate;
+    }
+
+    this.#populateTimePickers();
+
+    const listOfMinutesOptions = this.container.querySelectorAll(`.${minutesSelectClass} option:not([disabled])`);
+    let minute = listOfMinutesOptions[0].value;
+
+    if (isEnd) {
+      minute = listOfMinutesOptions[listOfMinutesOptions.length - 1].value;
+
+      let updatedEndDate = new Date(this.selectedEndDate.setMinutes(minute));
+      this.selectedEndDate = updatedEndDate;
+    } else {
+      let updatedStartDate = new Date(this.selectedStartDate.setMinutes(minute));
+      this.selectedStartDate = updatedStartDate;
+    }
+
+    this.#populateTimePickers();
+    this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
+    this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
+
+    if (!isEnd && this.changeStartDateCallback) {
+      this.changeStartDateCallback();
+    } else if (this.changeEndDateCallback) {
+      this.changeEndDateCallback();
+    }
   }
 }
 
