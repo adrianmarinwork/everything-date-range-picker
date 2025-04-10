@@ -133,7 +133,7 @@ class EverythingDateRangePicker {
     this.changeEndDateCallback = options.changeEndDateCallback || null;
 
     // Lets make the different checks for the dates
-    const isMinDateBigger = this.checkIfFirstDateBigger(this.minDate, this.startDate);
+    const isMinDateBigger = this.#checkIfFirstDateBigger(this.minDate, this.startDate);
 
     if (isMinDateBigger) {
       this.startDate = new Date(this.minDate);
@@ -141,7 +141,7 @@ class EverythingDateRangePicker {
       this.selectedStartDate = this.startDate;
     }
 
-    const isStartDateBigger = this.checkIfFirstDateBigger(this.startDate, this.endDate);
+    const isStartDateBigger = this.#checkIfFirstDateBigger(this.startDate, this.endDate);
 
     if (isStartDateBigger) {
       this.endDate = new Date(this.startDate);
@@ -149,7 +149,7 @@ class EverythingDateRangePicker {
       this.selectedEndDate = this.endDate;
     }
 
-    const isEndDateBigger = this.checkIfFirstDateBigger(this.endDate, this.maxDate);
+    const isEndDateBigger = this.#checkIfFirstDateBigger(this.endDate, this.maxDate);
 
     if (isEndDateBigger) {
       this.endDate = new Date(this.maxDate);
@@ -157,7 +157,7 @@ class EverythingDateRangePicker {
       this.selectedEndDate = this.endDate;
     }
 
-    const isEndDateSmaller = this.checkIfFirstDateSmaller(this.endDate, this.startDate);
+    const isEndDateSmaller = this.#checkIfFirstDateSmaller(this.endDate, this.startDate);
 
     if (isEndDateSmaller) {
       this.endDate = new Date(this.startDate);
@@ -681,6 +681,10 @@ class EverythingDateRangePicker {
       this.selectedStartDate = new Date(dateClicked);
       this.#timesClickedDate = 1;
       this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
+      this.populateStartCalendar();
+      if (!this.singleCalendar) {
+        this.populateEndCalendar();
+      }
       this.#populateTimePickers();
 
       if (this.changeStartDateCallback) {
@@ -818,44 +822,11 @@ class EverythingDateRangePicker {
         break;
       }
       case 'quarter': {
-        // Let's handle the month to make sure the month is the first one of the quarter
-        switch (month) {
-          case '02':
-          case '03':
-            month = '01';
-            break;
-          case '05':
-          case '06':
-            month = '04';
-            break;
-          case '08':
-          case '09':
-            month = '7';
-            break;
-          case 11:
-          case 12:
-            month = 10;
-            break;
-        }
-
-        let quarter = 'Q1';
-
-        switch (month) {
-          case '04':
-            quarter = 'Q2';
-            break;
-          case '07':
-            quarter = 'Q3';
-            break;
-          case 10:
-            quarter = 'Q4';
-            break;
-        }
-
+        const { quarter, firstMonthQuarter } = this.#getQuarterOfMonth(month);
         formattedDate = `${year}-${quarter}`;
-        from = `${year}-${month}-01 00:00`;
+        from = `${year}-${firstMonthQuarter}-01 00:00`;
 
-        const numberMonth = parseInt(month) - 1;
+        const numberMonth = parseInt(firstMonthQuarter) - 1;
         const sumOfMonths = numberMonth + 3 > 12 ? 12 : numberMonth + 3;
         const lastMonthOfQuarter = this.#verifyDateElementHasTwoDigits(sumOfMonths);
         const lastDayOfLastMonth = this.#getLastDayOfMonth(`${year}-${lastMonthOfQuarter}-01`);
@@ -863,34 +834,11 @@ class EverythingDateRangePicker {
         break;
       }
       case 'semester': {
-        // Let's handle the month to make sure the month is the first one of the semester
-        switch (month) {
-          case '02':
-          case '03':
-          case '04':
-          case '05':
-          case '06':
-            month = '01';
-            break;
-          case '08':
-          case '09':
-          case 10:
-          case 11:
-          case 12:
-            month = '07';
-            break;
-        }
-
-        let semester = 'H1';
-
-        if (month === '07') {
-          semester = 'H2';
-        }
-
+        const { semester, firstMonthSemester } = this.#getSemesterOfMonth(month);
         formattedDate = `${year}-${semester}`;
-        from = `${year}-${month}-01 00:00`;
+        from = `${year}-${firstMonthSemester}-01 00:00`;
 
-        const numberMonth = parseInt(month) - 1;
+        const numberMonth = parseInt(firstMonthSemester) - 1;
         const sumOfMonths = numberMonth + 6 > 12 ? 12 : numberMonth + 6;
         const lastMonthOfSemester = this.#verifyDateElementHasTwoDigits(sumOfMonths);
         const lastDayOfLastMonth = this.#getLastDayOfMonth(`${year}-${lastMonthOfSemester}-01`);
@@ -1143,7 +1091,9 @@ class EverythingDateRangePicker {
       for (let j = 0; j < week.length; j++) {
         const day = week[j] || '';
         const dateValue = `${year}-${month}-${day}`;
-        const attributesToAdd = day ? `class="calendar-clickable-cell" data-value="${dateValue}"` : '';
+        const dateObject = new Date(dateValue);
+        const disabled = this.#getIfCalendarElementDisabled(dateObject);
+        const attributesToAdd = day ? `class="calendar-clickable-cell" data-value="${dateValue}" ${disabled}` : '';
 
         tableDaysHTML += `<td ${attributesToAdd}>${day}</td>`;
       }
@@ -1188,7 +1138,9 @@ class EverythingDateRangePicker {
         monthName = monthName.substring(0, 3);
 
         const dateValue = `${year}-${monthNumber + 1}-${day}`;
-        const attributesToAdd = `class="calendar-clickable-cell" data-value="${dateValue}"`;
+        const dateObject = new Date(dateValue);
+        const disabled = this.#getIfCalendarElementDisabled(dateObject);
+        const attributesToAdd = `class="calendar-clickable-cell" data-value="${dateValue}" ${disabled}`;
 
         tableMonthsHTML += `<td ${attributesToAdd}>${monthName}</td>`;
 
@@ -1228,7 +1180,9 @@ class EverythingDateRangePicker {
 
       for (let j = 0; j < 2; j++) {
         const dateValue = `${year}-${month}-${day}`;
-        const attributesToAdd = `class="calendar-clickable-cell" data-value="${dateValue}"`;
+        const dateObject = new Date(dateValue);
+        const disabled = this.#getIfCalendarElementDisabled(dateObject);
+        const attributesToAdd = `class="calendar-clickable-cell" data-value="${dateValue}" ${disabled}`;
 
         tableQuartersHTML += `<td ${attributesToAdd}>Q${index}</td>`;
 
@@ -1265,7 +1219,9 @@ class EverythingDateRangePicker {
 
     for (let i = 1; i <= 2; i++) {
       const dateValue = `${year}-${month}-${day}`;
-      const attributesToAdd = `class="calendar-clickable-cell" data-value="${dateValue}"`;
+      const dateObject = new Date(dateValue);
+      const disabled = this.#getIfCalendarElementDisabled(dateObject);
+      const attributesToAdd = `class="calendar-clickable-cell" data-value="${dateValue}" ${disabled}`;
 
       tableSemestersHTML += `<td ${attributesToAdd}>H${i}</td>`;
 
@@ -1306,7 +1262,9 @@ class EverythingDateRangePicker {
 
       for (let j = 0; j < 3; j++) {
         const dateValue = `${year}-${month}-${day}`;
-        const attributesToAdd = `class="calendar-clickable-cell" data-value="${dateValue}"`;
+        const dateObject = new Date(dateValue);
+        const disabled = this.#getIfCalendarElementDisabled(dateObject);
+        const attributesToAdd = `class="calendar-clickable-cell" data-value="${dateValue}" ${disabled}`;
 
         tableYearsHTML += `<td ${attributesToAdd}>${year}</td>`;
 
@@ -1386,7 +1344,7 @@ class EverythingDateRangePicker {
    * @param {Object} date2 Second date to compare
    * @returns {Boolean} Indicates if the first date is bigger
    */
-  checkIfFirstDateBigger(date1, date2) {
+  #checkIfFirstDateBigger(date1, date2) {
     if (!date1 || !date2) {
       return false;
     }
@@ -1406,7 +1364,7 @@ class EverythingDateRangePicker {
    * @param {Object} date2 Second date to compare
    * @returns {Boolean} Indicates if the first date is smaller
    */
-  checkIfFirstDateSmaller(date1, date2) {
+  #checkIfFirstDateSmaller(date1, date2) {
     if (!date1 || !date2) {
       return false;
     }
@@ -1600,10 +1558,12 @@ class EverythingDateRangePicker {
       const timePickerVisibility = this.#calendarGranularity === 'hour' ? 'flex' : 'none';
       this.#changeDisplayOfTimePickersContainers(timePickerVisibility);
       this.populateStartCalendar();
-      this.populateEndCalendar();
       this.#setStateOfCalendarArrows();
       this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
-      this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
+      if (!this.singleCalendar) {
+        this.populateEndCalendar();
+        this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
+      }
 
       if (this.changeGranularityCallback) {
         this.changeGranularityCallback();
@@ -1862,6 +1822,194 @@ class EverythingDateRangePicker {
       endHours: endDateHoursDropdown ? endDateHoursDropdown.value : '',
       endMinutes: endDateMinutesDropdown ? endDateMinutesDropdown.value : '',
     };
+  }
+
+  #getIfCalendarElementDisabled(date) {
+    let disabled = '';
+
+    if (!this.minDate && !this.maxDate) {
+      return disabled;
+    }
+
+    switch (this.#calendarGranularity) {
+      case 'hour':
+      case 'day': {
+        const isMinDateSameDay = this.#checkIfDatesSameDay(this.minDate, date);
+        const isMaxDateSameDay = this.#checkIfDatesSameDay(this.maxDate, date);
+        const isMinDateBigger = this.#checkIfFirstDateBigger(this.minDate, date);
+        const isMaxDateSmaller = this.#checkIfFirstDateSmaller(this.maxDate, date);
+
+        if (!isMinDateSameDay && !isMaxDateSameDay && (isMinDateBigger || isMaxDateSmaller)) {
+          disabled = 'disabled';
+        }
+        break;
+      }
+      case 'week':
+        break;
+      case 'month': {
+        const dateMonth = date.getMonth();
+        const dateYear = date.getFullYear();
+        const minDateMonth = this.minDate ? this.minDate.getMonth() : undefined;
+        const minDateYear = this.minDate ? this.minDate.getFullYear() : undefined;
+        const maxDateMonth = this.maxDate ? this.maxDate.getMonth() : undefined;
+        const maxDateYear = this.maxDate ? this.maxDate.getFullYear() : undefined;
+        const isMinDateBigger = (dateMonth < minDateMonth && dateYear === minDateYear) || dateYear < minDateYear;
+        const isMaxDateSmaller = (dateMonth > maxDateMonth && dateYear === maxDateYear) || dateYear > maxDateYear;
+
+        if (isMinDateBigger || isMaxDateSmaller) {
+          disabled = 'disabled';
+        }
+        break;
+      }
+      case 'quarter': {
+        const dateMonth = this.#verifyDateElementHasTwoDigits(date.getMonth() + 1);
+        const dateYear = date.getFullYear();
+        const minDateMonth = this.minDate
+          ? this.#verifyDateElementHasTwoDigits(this.minDate.getMonth() + 1)
+          : undefined;
+        const minDateYear = this.minDate ? this.minDate.getFullYear() : undefined;
+        const maxDateMonth = this.maxDate
+          ? this.#verifyDateElementHasTwoDigits(this.maxDate.getMonth() + 1)
+          : undefined;
+        const maxDateYear = this.maxDate ? this.maxDate.getFullYear() : undefined;
+        const { quarter: dateQuarter } = this.#getQuarterOfMonth(dateMonth);
+        const { quarter: minDateQuarter } = this.#getQuarterOfMonth(minDateMonth);
+        const { quarter: maxDateQuarter } = this.#getQuarterOfMonth(maxDateMonth);
+        const isMinDateBigger = (dateQuarter < minDateQuarter && dateYear === minDateYear) || dateYear < minDateYear;
+        const isMaxDateSmaller = (dateQuarter > maxDateQuarter && dateYear === maxDateYear) || dateYear > maxDateYear;
+
+        if (isMinDateBigger || isMaxDateSmaller) {
+          disabled = 'disabled';
+        }
+        break;
+      }
+      case 'semester': {
+        const dateMonth = this.#verifyDateElementHasTwoDigits(date.getMonth() + 1);
+        const dateYear = date.getFullYear();
+        const minDateMonth = this.minDate
+          ? this.#verifyDateElementHasTwoDigits(this.minDate.getMonth() + 1)
+          : undefined;
+        const minDateYear = this.minDate ? this.minDate.getFullYear() : undefined;
+        const maxDateMonth = this.maxDate
+          ? this.#verifyDateElementHasTwoDigits(this.maxDate.getMonth() + 1)
+          : undefined;
+        const maxDateYear = this.maxDate ? this.maxDate.getFullYear() : undefined;
+        const { semester: dateSemester } = this.#getSemesterOfMonth(dateMonth);
+        const { semester: minDateSemester } = this.#getSemesterOfMonth(minDateMonth);
+        const { semester: maxDateSemester } = this.#getSemesterOfMonth(maxDateMonth);
+        const isMinDateBigger = (dateSemester < minDateSemester && dateYear === minDateYear) || dateYear < minDateYear;
+        const isMaxDateSmaller = (dateSemester > maxDateSemester && dateYear === maxDateYear) || dateYear > maxDateYear;
+
+        if (isMinDateBigger || isMaxDateSmaller) {
+          disabled = 'disabled';
+        }
+        break;
+      }
+      case 'year':
+        const dateYear = date.getFullYear();
+        const minDateYear = this.minDate ? this.minDate.getFullYear() : undefined;
+        const maxDateYear = this.maxDate ? this.maxDate.getFullYear() : undefined;
+        const isMinDateBigger = dateYear < minDateYear;
+        const isMaxDateSmaller = dateYear > maxDateYear;
+
+        if (isMinDateBigger || isMaxDateSmaller) {
+          disabled = 'disabled';
+        }
+        break;
+    }
+
+    return disabled;
+  }
+
+  /**
+   * Method that takes care of returning the quarter of the month passed
+   * as parameter
+   * @param {String|Number} month The number of the month with two digits
+   */
+  #getQuarterOfMonth(month) {
+    let firstMonthQuarter;
+
+    // Let's handle the month to make sure the month is the first one of the quarter
+    switch (month) {
+      case '01':
+      case '02':
+      case '03':
+        firstMonthQuarter = '01';
+        break;
+      case '04':
+      case '05':
+      case '06':
+        firstMonthQuarter = '04';
+        break;
+      case '07':
+      case '08':
+      case '09':
+        firstMonthQuarter = '07';
+        break;
+      case 10:
+      case 11:
+      case 12:
+        firstMonthQuarter = 10;
+        break;
+    }
+
+    let quarter;
+
+    switch (firstMonthQuarter) {
+      case '01':
+        quarter = 'Q1';
+        break;
+      case '04':
+        quarter = 'Q2';
+        break;
+      case '07':
+        quarter = 'Q3';
+        break;
+      case 10:
+        quarter = 'Q4';
+        break;
+    }
+
+    return { quarter, firstMonthQuarter };
+  }
+
+  /**
+   * Method that takes care of returning the semester of the month passed
+   * as parameter
+   * @param {String|Number} month The number of the month with two digits
+   */
+  #getSemesterOfMonth(month) {
+    let firstMonthSemester;
+
+    // Let's handle the month to make sure the month is the first one of the semester
+    switch (month) {
+      case '01':
+      case '02':
+      case '03':
+      case '04':
+      case '05':
+      case '06':
+        firstMonthSemester = '01';
+        break;
+      case '07':
+      case '08':
+      case '09':
+      case 10:
+      case 11:
+      case 12:
+        firstMonthSemester = '07';
+        break;
+    }
+
+    let semester;
+
+    if (firstMonthSemester === '01') {
+      semester = 'H1';
+    } else if (firstMonthSemester === '07') {
+      semester = 'H2';
+    }
+
+    return { semester, firstMonthSemester };
   }
 }
 
