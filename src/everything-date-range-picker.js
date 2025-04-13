@@ -133,6 +133,7 @@ class EverythingDateRangePicker {
     this.showSetEndDayButton = this.#checkIfParameterExist(options.showSetEndDayButton, false);
     this.changeStartDateCallback = options.changeStartDateCallback || null;
     this.changeEndDateCallback = options.changeEndDateCallback || null;
+    this.listOfDisabledDates = options.listOfDisabledDates || [];
 
     // Lets make the different checks for the dates
     const isMinDateBigger = this.#checkIfFirstDateBigger(this.minDate, this.startDate);
@@ -1864,7 +1865,28 @@ class EverythingDateRangePicker {
   #getIfCalendarElementDisabled(date) {
     let disabled = '';
 
-    if (!this.minDate && !this.maxDate) {
+    if (this.listOfDisabledDates.length && this.#calendarGranularity === this.granularity) {
+      let dateIsInTheDisabledDates = false;
+      const formattedDateByGranularity = this.getDateFormattedByGranularity(date).date;
+
+      if (this.granularity === 'hour') {
+        for (let i = 0; i < this.listOfDisabledDates.length; i++) {
+          let disabledDate = this.listOfDisabledDates[i];
+
+          if (formattedDateByGranularity.includes(disabledDate)) {
+            dateIsInTheDisabledDates = true;
+          }
+        }
+      } else {
+        dateIsInTheDisabledDates = this.listOfDisabledDates.includes(formattedDateByGranularity);
+      }
+
+      if (dateIsInTheDisabledDates) {
+        disabled = 'disabled';
+      }
+    }
+
+    if ((!this.minDate && !this.maxDate) || disabled === 'disabled') {
       return disabled;
     }
 
