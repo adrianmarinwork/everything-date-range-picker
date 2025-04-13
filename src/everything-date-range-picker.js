@@ -137,8 +137,9 @@ class EverythingDateRangePicker {
 
     // Lets make the different checks for the dates
     const isMinDateBigger = this.#checkIfFirstDateBigger(this.minDate, this.startDate);
+    const isMaxDateSmaller = this.#checkIfFirstDateSmaller(this.maxDate, this.startDate);
 
-    if (isMinDateBigger) {
+    if (isMinDateBigger || isMaxDateSmaller) {
       this.startDate = new Date(this.minDate);
       this.currentStartDate = this.startDate;
       this.selectedStartDate = this.startDate;
@@ -588,7 +589,7 @@ class EverythingDateRangePicker {
       case 'day':
       case 'week': {
         const newMonth = isPreviousArrow ? dateToUse.getMonth() - 1 : dateToUse.getMonth() + 1;
-        newDateToRender = new Date(dateToUse).setMonth(newMonth);
+        newDateToRender = new Date(new Date(dateToUse).setDate(1)).setMonth(newMonth);
         break;
       }
       case 'month':
@@ -972,6 +973,27 @@ class EverythingDateRangePicker {
 
     if (!rangeObj) {
       return;
+    }
+
+    const isMinDateBigger = this.#checkIfFirstDateBigger(this.minDate, rangeObj.startDate);
+    const isMaxDateSmaller = this.#checkIfFirstDateSmaller(this.maxDate, rangeObj.endDate);
+
+    if (isMinDateBigger) {
+      rangeObj.startDate = this.minDate;
+
+      const isStartBigger = this.#checkIfFirstDateBigger(rangeObj.startDate, rangeObj.endDate);
+      if (isStartBigger) {
+        rangeObj.endDate = rangeObj.startDate;
+      }
+    }
+
+    if (isMaxDateSmaller) {
+      rangeObj.endDate = this.maxDate;
+
+      const isEndSmaller = this.#checkIfFirstDateSmaller(rangeObj.endDate, rangeObj.startDate);
+      if (isEndSmaller) {
+        rangeObj.startDate = rangeObj.endDate;
+      }
     }
 
     this.startDate = rangeObj.startDate;
@@ -1563,7 +1585,7 @@ class EverythingDateRangePicker {
    */
   #getLastDayOfMonth(date) {
     let lastDayOfMonth = new Date(date);
-    lastDayOfMonth.setMonth(lastDayOfMonth.getMonth() + 1);
+    lastDayOfMonth.setMonth(new Date(lastDayOfMonth.setDate(1)).getMonth() + 1);
     lastDayOfMonth.setDate(0);
     lastDayOfMonth = lastDayOfMonth.getDate();
 
