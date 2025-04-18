@@ -1,5 +1,6 @@
 .main-date-range-picker-container {
   display: flex;
+  align-items: center;
   gap: 0.75rem;
   width: fit-content;
 
