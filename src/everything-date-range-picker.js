@@ -116,6 +116,7 @@ class EverythingDateRangePicker {
     this.granularity = options.granularity || 'hour';
     this.#calendarGranularity = this.granularity;
     this.singleCalendar = this.#checkIfParameterExist(options.singleCalendar, false);
+    this.showFastNavigationArrows = this.#checkIfParameterExist(options.showFastNavigationArrows, false);
     this.customRanges = options.customRanges || [];
     this.ranges = this.#defaultRanges;
     this.hideRanges = this.#checkIfParameterExist(options.hideRanges, false);
@@ -234,7 +235,7 @@ class EverythingDateRangePicker {
     if (this.showSetStartDayButton) {
       setStartDayButton = `
         <button class="calendar-set-start-end-day-button" data-value="start">
-          Set Start Day
+          Set start day
         </button>
       `;
     }
@@ -242,7 +243,7 @@ class EverythingDateRangePicker {
     if (this.showSetEndDayButton) {
       setEndDayButton = `
         <button class="calendar-set-start-end-day-button" data-value="end">
-          Set End Day
+          Set end day
         </button>
       `;
     }
@@ -327,6 +328,23 @@ class EverythingDateRangePicker {
       `;
     }
 
+    let leftFastNavigationArrowHTML = '';
+    let rightFastNavigationArrowHTML = '';
+
+    if (this.singleCalendar && this.showFastNavigationArrows) {
+      leftFastNavigationArrowHTML = `
+        <div class="date-range-picker-fast-navigation-arrow left-arrow">
+          <- 
+        </div>
+      `;
+
+      rightFastNavigationArrowHTML = `
+        <div class="date-range-picker-fast-navigation-arrow right-arrow">
+          -> 
+        </div>
+      `;
+    }
+
     let applyButtonHTML = '';
 
     if (this.showApplyButton) {
@@ -340,6 +358,7 @@ class EverythingDateRangePicker {
     this.container.innerHTML = `
       <div class="main-date-range-picker-container">
         ${granularityDropdownHTML}
+        ${leftFastNavigationArrowHTML}
         <div class="date-range-picker-container">
           <div class="date-range-picker-display">
             <span class="calendar-icon">📅</span>
@@ -357,6 +376,7 @@ class EverythingDateRangePicker {
             </div>
           </div>
         </div>
+        ${rightFastNavigationArrowHTML}
       </div>
     `;
 
@@ -398,6 +418,12 @@ class EverythingDateRangePicker {
 
     this.#populateTimePickers();
     this.#attachOnChangeHoursMinutesDropdownsEvent();
+
+    if (this.singleCalendar && this.showFastNavigationArrows) {
+      this.#attachClickFastNavigationArrows();
+      this.#setStateOfFastNavigationArrow(this.selectedStartDate, true);
+      this.#setStateOfFastNavigationArrow(this.selectedStartDate, false);
+    }
 
     // Add click event listener to the arrows to navigate the months
     const listOfCalendarArrows = this.container.querySelectorAll('.calendar-arrow');
@@ -726,6 +752,11 @@ class EverythingDateRangePicker {
       }
       this.#populateTimePickers();
 
+      if (this.singleCalendar && this.showFastNavigationArrows) {
+        this.#setStateOfFastNavigationArrow(this.selectedStartDate, true);
+        this.#setStateOfFastNavigationArrow(this.selectedStartDate, false);
+      }
+
       if (this.changeStartDateCallback) {
         this.changeStartDateCallback();
       }
@@ -828,9 +859,11 @@ class EverythingDateRangePicker {
    * Method that takes care of returning the selected dates formatting them by the selected
    * granularity by the user
    * @param {Object} date The date object
+   * @param {Boolean} ignoreHoursForHourGranularity A boolean to ignore the hours when formatting the hour
+   * granularity
    * @returns {Object} The formatted date, the from date of the granularity selected and the to date
    */
-  getDateFormattedByGranularity(date) {
+  getDateFormattedByGranularity(date, ignoreHoursForHourGranularity) {
     const granularity = this.granularity;
     const day = this.#verifyDateElementHasTwoDigits(date.getDate());
     let month = this.#verifyDateElementHasTwoDigits(date.getMonth() + 1);
@@ -843,9 +876,17 @@ class EverythingDateRangePicker {
 
     switch (granularity) {
       case 'hour':
-        formattedDate = `${year}-${month}-${day} ${hours}:${minutes}`;
-        from = `${year}-${month}-${day} ${hours}:${minutes}`;
-        to = `${year}-${month}-${day} ${hours}:${minutes}`;
+        formattedDate = `${year}-${month}-${day}`;
+        from = `${year}-${month}-${day}`;
+        to = `${year}-${month}-${day}`;
+
+        if (ignoreHoursForHourGranularity) {
+          break;
+        }
+
+        formattedDate += ` ${hours}:${minutes}`;
+        from += ` ${hours}:${minutes}`;
+        to += ` ${hours}:${minutes}`;
         break;
       case 'day':
         formattedDate = `${year}-${month}-${day}`;
@@ -1625,6 +1666,11 @@ class EverythingDateRangePicker {
         this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
       }
 
+      if (this.singleCalendar && this.showFastNavigationArrows) {
+        this.#setStateOfFastNavigationArrow(this.selectedStartDate, true);
+        this.#setStateOfFastNavigationArrow(this.selectedStartDate, false);
+      }
+
       if (this.changeGranularityCallback) {
         this.changeGranularityCallback();
       }
@@ -2139,6 +2185,115 @@ class EverythingDateRangePicker {
     } else if (this.changeEndDateCallback) {
       this.changeEndDateCallback();
     }
+  }
+
+  #attachClickFastNavigationArrows() {
+    const fastNavigationArrows = this.container.querySelectorAll('.date-range-picker-fast-navigation-arrow');
+    fastNavigationArrows.forEach((fastNavigationArrow) => {
+      fastNavigationArrow.addEventListener('click', (event) => this.#clickFastNavigationArrow(event));
+    });
+  }
+
+  #clickFastNavigationArrow(event) {
+    const targetClass = event.target.classList.value;
+    const isLeftArrow = targetClass.includes('left-arrow');
+    const arrowToShow = isLeftArrow ? 'right' : 'left';
+
+    const arrowNotClicked = this.container.querySelector(
+      `.date-range-picker-fast-navigation-arrow.${arrowToShow}-arrow`
+    );
+    arrowNotClicked.style.display = 'block';
+
+    const currentDate = this.selectedStartDate;
+    let newRenderingDate = new Date();
+
+    switch (this.granularity) {
+      case 'hour':
+      case 'day':
+        if (isLeftArrow) {
+          newRenderingDate = new Date(currentDate.setDate(currentDate.getDate() - 1));
+        } else {
+          newRenderingDate = new Date(currentDate.setDate(currentDate.getDate() + 1));
+        }
+        break;
+      case 'week':
+        break;
+      case 'month':
+        newRenderingDate = new Date(currentDate.setDate(1));
+        if (isLeftArrow) {
+          newRenderingDate = new Date(newRenderingDate.setMonth(newRenderingDate.getMonth() - 1));
+        } else {
+          newRenderingDate = new Date(newRenderingDate.setMonth(newRenderingDate.getMonth() + 1));
+        }
+        break;
+      case 'quarter': {
+        newRenderingDate = new Date(currentDate.setDate(1));
+        const month = this.#verifyDateElementHasTwoDigits(newRenderingDate.getMonth() + 1);
+        const { firstMonthQuarter } = this.#getQuarterOfMonth(month);
+        if (isLeftArrow) {
+          const monthToSet = parseInt(firstMonthQuarter) - 2;
+          newRenderingDate = new Date(newRenderingDate.setMonth(monthToSet));
+        } else {
+          const monthToSet = parseInt(firstMonthQuarter) + 3;
+          newRenderingDate = new Date(newRenderingDate.setMonth(monthToSet));
+        }
+        break;
+      }
+      case 'semester': {
+        newRenderingDate = new Date(currentDate.setDate(1));
+        const month = this.#verifyDateElementHasTwoDigits(newRenderingDate.getMonth() + 1);
+        const { firstMonthSemester } = this.#getSemesterOfMonth(month);
+        if (isLeftArrow) {
+          const monthToSet = parseInt(firstMonthSemester) - 2;
+          newRenderingDate = new Date(newRenderingDate.setMonth(monthToSet));
+        } else {
+          const monthToSet = parseInt(firstMonthSemester) + 6;
+          newRenderingDate = new Date(newRenderingDate.setMonth(monthToSet));
+        }
+        break;
+      }
+      case 'year':
+        if (isLeftArrow) {
+          newRenderingDate = new Date(currentDate.setFullYear(currentDate.getFullYear() - 1));
+        } else {
+          newRenderingDate = new Date(currentDate.setFullYear(currentDate.getFullYear() + 1));
+        }
+        break;
+    }
+
+    this.startDate = new Date(newRenderingDate);
+    this.currentStartDate = this.startDate;
+    this.selectedStartDate = this.startDate;
+
+    this.populateStartCalendar();
+    this.#setStateOfCalendarArrows();
+    this.#setStateOfFastNavigationArrow(newRenderingDate, isLeftArrow);
+    this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
+  }
+
+  /**
+   * Method used to hide the fast navigation arrow base in the min date or max date and the
+   * date sent as parameter
+   * @param {Object} dateToCompare The date object to compare
+   * @param {Boolean} isLeftArrow Just indicates if is the left arrow
+   */
+  #setStateOfFastNavigationArrow(dateToCompare, isLeftArrow) {
+    const formattedDateToCompare = this.getDateFormattedByGranularity(dateToCompare, true).date;
+    const formattedMinDate = this.minDate ? this.getDateFormattedByGranularity(this.minDate, true).date : false;
+    const formattedMaxDate = this.maxDate ? this.getDateFormattedByGranularity(this.maxDate, true).date : false;
+
+    const arrowSide = isLeftArrow ? 'left' : 'right';
+    const arrowClicked = this.container.querySelector(`.date-range-picker-fast-navigation-arrow.${arrowSide}-arrow`);
+    let display = 'block';
+
+    if (
+      (isLeftArrow && formattedDateToCompare === formattedMinDate) ||
+      (!isLeftArrow && formattedDateToCompare === formattedMaxDate)
+    ) {
+      display = 'none';
+    }
+
+    arrowClicked.style.display = display;
   }
 }
 
