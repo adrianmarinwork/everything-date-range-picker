@@ -893,6 +893,19 @@ class EverythingDateRangePicker {
         from = `${year}-${month}-${day} 00:00`;
         to = `${year}-${month}-${day} 23:59`;
         break;
+      case 'week': {
+        const { week, year } = this.#getWeekInfoOfDate(date);
+        const { start, end } = this.#getStartAndEndOfWeek(date);
+        const startMonth = this.#verifyDateElementHasTwoDigits(start.getMonth() + 1);
+        const startDate = this.#verifyDateElementHasTwoDigits(start.getDate());
+        const endMonth = this.#verifyDateElementHasTwoDigits(end.getMonth() + 1);
+        const endDate = this.#verifyDateElementHasTwoDigits(end.getDate());
+
+        formattedDate = `${year}-W${this.#verifyDateElementHasTwoDigits(week)}`;
+        from = `${start.getFullYear()}-${startMonth}-${startDate} 00:00`;
+        to = `${end.getFullYear()}-${endMonth}-${endDate} 23:59`;
+        break;
+      }
       case 'month': {
         formattedDate = `${year}-${month}`;
         from = `${year}-${month}-01 00:00`;
@@ -1087,7 +1100,7 @@ class EverythingDateRangePicker {
       case 'hour':
       case 'day':
       case 'week':
-        calendarHTML = this.#generateHoursDaysCalendar(date);
+        calendarHTML = this.#generateHoursDaysWeeksCalendar(date);
         break;
       case 'month':
         calendarHTML = this.#generateMonthsCalendar(date);
@@ -1107,12 +1120,12 @@ class EverythingDateRangePicker {
   }
 
   /**
-   * Method used to generate the calendar used for the hours and days granularity that displays
+   * Method used to generate the calendar used for the hours, days and weeks granularity that displays
    * the days of the month
    * @param {Object} date The date object to use to generate the calendar
    * @returns The HTML of the calendar
    */
-  #generateHoursDaysCalendar(date) {
+  #generateHoursDaysWeeksCalendar(date) {
     let firstDayOfMonthInWeek = new Date(date);
     firstDayOfMonthInWeek = new Date(firstDayOfMonthInWeek.setDate(1)).getDay();
     const lastDayOfMonth = this.#getLastDayOfMonth(date);
@@ -1971,8 +1984,28 @@ class EverythingDateRangePicker {
         }
         break;
       }
-      case 'week':
+      case 'week': {
+        const dateWeek = this.#getWeekInfoOfDate(date);
+        const minDateWeek = this.#getWeekInfoOfDate(this.minDate);
+        const maxDateWeek = this.#getWeekInfoOfDate(this.maxDate);
+        let isMinDateBigger = false;
+        let isMaxDateSmaller = false;
+
+        if (minDateWeek) {
+          const { week, year } = minDateWeek;
+          isMinDateBigger = (dateWeek.week < week && dateWeek.year === year) || dateWeek.year < year;
+        }
+
+        if (maxDateWeek) {
+          const { week, year } = maxDateWeek;
+          isMaxDateSmaller = (dateWeek > week && dateWeek.year === year) || dateWeek.year > year;
+        }
+
+        if (isMinDateBigger || isMaxDateSmaller) {
+          disabled = 'disabled';
+        }
         break;
+      }
       case 'month': {
         const dateMonth = date.getMonth();
         const dateYear = date.getFullYear();
@@ -2204,7 +2237,7 @@ class EverythingDateRangePicker {
     );
     arrowNotClicked.style.display = 'block';
 
-    const currentDate = this.selectedStartDate;
+    const currentDate = new Date(this.selectedStartDate);
     let newRenderingDate = new Date();
 
     switch (this.granularity) {
@@ -2217,6 +2250,11 @@ class EverythingDateRangePicker {
         }
         break;
       case 'week':
+        if (isLeftArrow) {
+          newRenderingDate = new Date(currentDate.setDate(currentDate.getDate() - 7));
+        } else {
+          newRenderingDate = new Date(currentDate.setDate(currentDate.getDate() + 7));
+        }
         break;
       case 'month':
         newRenderingDate = new Date(currentDate.setDate(1));
@@ -2294,6 +2332,89 @@ class EverythingDateRangePicker {
     }
 
     arrowClicked.style.display = display;
+  }
+
+  /**
+   * Get ISO 8601 week number and ISO week year or the US-style week number and year based in
+   * the first day of the week set
+   *
+   * ISO 8601: Weeks start on Monday, week 1 is the week with Jan 4th
+   * US-style: Weeks start on Sunday, week 1 contains January 1st
+   * @param {Object} date The date object to get the week info
+   */
+  #getWeekInfoOfDate(date) {
+    if (!date) {
+      return undefined;
+    }
+
+    const firstDayOfWeek = this.firstDayOfWeek;
+
+    // ISO 8601 version
+    if (firstDayOfWeek !== 'Sunday') {
+      const tempDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+
+      // Nearest Thursday determines ISO year
+      const day = tempDate.getUTCDay() || 7;
+      tempDate.setUTCDate(tempDate.getUTCDate() + 4 - day);
+
+      const isoYear = tempDate.getUTCFullYear();
+
+      // First ISO week starts on the Monday of the week with Jan 4th
+      const yearStart = new Date(Date.UTC(isoYear, 0, 1));
+      const startDay = yearStart.getUTCDay() || 7;
+      const isoYearStart = new Date(yearStart);
+      isoYearStart.setUTCDate(isoYearStart.getUTCDate() + (startDay <= 4 ? 1 - startDay : 8 - startDay));
+
+      const weekNumber = Math.ceil(((tempDate - isoYearStart) / 86400000 + 1) / 7);
+
+      return {
+        week: weekNumber,
+        year: isoYear,
+      };
+    }
+
+    const tempDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const year = tempDate.getFullYear();
+
+    // Find the first Sunday before or on Jan 1st
+    const jan1 = new Date(year, 0, 1);
+    const jan1Day = jan1.getDay(); // Sunday = 0, Saturday = 6
+    const firstWeekStart = new Date(jan1);
+    firstWeekStart.setDate(jan1.getDate() - jan1Day); // Go back to the Sunday
+
+    // Calculate difference in days
+    const diffInDays = Math.floor((tempDate - firstWeekStart) / (1000 * 60 * 60 * 24));
+    const weekNumber = Math.floor(diffInDays / 7) + 1;
+
+    return {
+      week: weekNumber,
+      year: date.getFullYear(),
+    };
+  }
+
+  /**
+   * Method used to get the start and the end of the week from the date sent
+   * @param {Object} date The date we are going to extract the week
+   * @returns {Object} Contains the start and the end of the week
+   */
+  #getStartAndEndOfWeek(date) {
+    const weekStartsOnSunday = this.firstDayOfWeek === 'Sunday';
+    const current = new Date(date);
+    const day = current.getDay();
+
+    // Calculate how many days to subtract for the start of the week
+    const diffToStart = weekStartsOnSunday ? -day : -((day + 6) % 7);
+
+    const startOfWeek = new Date(current);
+    startOfWeek.setDate(current.getDate() + diffToStart);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+    return {
+      start: startOfWeek,
+      end: endOfWeek,
+    };
   }
 }
 
