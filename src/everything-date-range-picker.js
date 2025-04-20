@@ -856,6 +856,253 @@ class EverythingDateRangePicker {
   }
 
   /**
+   * Method used to set the start date
+   * @param {Object|String} date The date that is going to be the start date
+   */
+  setStartDate(date) {
+    this.startDate = date;
+    this.#checkValidityOfDateType('startDate');
+    this.currentStartDate = this.startDate;
+    this.selectedStartDate = this.startDate;
+
+    if (this.minDate) {
+      const isMinDateBigger = this.#checkIfFirstDateBigger(this.minDate, this.startDate);
+
+      if (isMinDateBigger) {
+        const message = `Current min date (${this.minDate}) is bigger than new set start date`;
+        this.#sendConsoleMessage(message, 'warning');
+
+        this.minDate = new Date(this.startDate);
+      }
+    }
+
+    if (this.maxDate) {
+      const isMaxDateSmaller = this.#checkIfFirstDateSmaller(this.maxDate, this.startDate);
+
+      if (isMaxDateSmaller) {
+        const message = `Current max date (${this.maxDate}) is smaller than new set start date`;
+        this.#sendConsoleMessage(message, 'warning');
+
+        this.maxDate = new Date(this.startDate);
+      }
+    }
+
+    const isEndDateSmaller = this.#checkIfFirstDateSmaller(this.endDate, this.startDate);
+
+    if (isEndDateSmaller) {
+      const message = `Current end date (${this.endDate}) is smaller than new set start date`;
+      this.#sendConsoleMessage(message, 'warning');
+
+      this.endDate = new Date(this.startDate);
+      this.currentEndDate = this.endDate;
+      this.selectedEndDate = this.endDate;
+    }
+
+    this.#updateDateRangePickerElementsAfterUpdatingDate();
+  }
+
+  /**
+   * Method used to set the end date
+   * @param {Object|String} date The date that is going to be the end date
+   */
+  setEndDate(date) {
+    this.endDate = date;
+    this.#checkValidityOfDateType('endDate');
+    this.currentEndDate = this.endDate;
+    this.selectedEndDate = this.endDate;
+
+    if (this.minDate) {
+      const isMinDateBigger = this.#checkIfFirstDateBigger(this.minDate, this.endDate);
+
+      if (isMinDateBigger) {
+        const message = `Current min date (${this.minDate}) is bigger than new set end date`;
+        this.#sendConsoleMessage(message, 'warning');
+
+        this.minDate = new Date(this.endDate);
+      }
+    }
+
+    if (this.maxDate) {
+      const isMaxDateSmaller = this.#checkIfFirstDateSmaller(this.maxDate, this.endDate);
+
+      if (isMaxDateSmaller) {
+        const message = `Current max date (${this.maxDate}) is smaller than new set end date`;
+        this.#sendConsoleMessage(message, 'warning');
+
+        this.maxDate = new Date(this.endDate);
+      }
+    }
+
+    const isStartDateBigger = this.#checkIfFirstDateBigger(this.startDate, this.endDate);
+
+    if (isStartDateBigger) {
+      const message = `Current start date (${this.startDate}) is bigger than new set end date`;
+      this.#sendConsoleMessage(message, 'warning');
+
+      this.startDate = new Date(this.endDate);
+      this.currentStartDate = this.startDate;
+      this.selectedStartDate = this.startDate;
+    }
+
+    this.#updateDateRangePickerElementsAfterUpdatingDate();
+  }
+
+  getMinDate() {
+    return this.minDate;
+  }
+
+  /**
+   * Method used to set the min date
+   * @param {Object|String} date The date that is going to be the min date
+   */
+  setMinDate(date) {
+    this.minDate = date;
+    this.#checkValidityOfDateType('minDate');
+
+    if (this.maxDate) {
+      const isMinDateBiggerMaxDate = this.#checkIfFirstDateBigger(this.minDate, this.maxDate);
+
+      if (isMinDateBiggerMaxDate) {
+        const message = `Current max date (${this.maxDate}) is smaller than new set min date`;
+        this.#sendConsoleMessage(message, 'warning');
+
+        this.maxDate = new Date(this.minDate);
+      }
+    }
+
+    const isMinDateBiggerStartDate = this.#checkIfFirstDateBigger(this.minDate, this.startDate);
+
+    if (isMinDateBiggerStartDate) {
+      const message = `Current start date (${this.startDate}) is smaller than new set min date`;
+      this.#sendConsoleMessage(message, 'warning');
+
+      this.startDate = new Date(this.minDate);
+      this.currentStartDate = this.startDate;
+      this.selectedStartDate = this.startDate;
+    }
+
+    if (!this.singleCalendar) {
+      const isMinDateBiggerEndDate = this.#checkIfFirstDateBigger(this.minDate, this.endDate);
+
+      if (isMinDateBiggerEndDate) {
+        const message = `Current end date (${this.endDate}) is smaller than new set min date`;
+        this.#sendConsoleMessage(message, 'warning');
+
+        this.endDate = new Date(this.minDate);
+        this.currentEndDate = this.endDate;
+        this.selectedEndDate = this.endDate;
+      }
+    }
+
+    this.#updateDateRangePickerElementsAfterUpdatingDate();
+  }
+
+  getMaxDate() {
+    return this.maxDate;
+  }
+
+  /**
+   * Method used to set the max date
+   * @param {Object|String} date The date that is going to be the max date
+   */
+  setMaxDate(date) {
+    this.maxDate = date;
+    this.#checkValidityOfDateType('maxDate');
+
+    if (this.minDate) {
+      const isMaxDateSmallerMinDate = this.#checkIfFirstDateSmaller(this.maxDate, this.minDate);
+
+      if (isMaxDateSmallerMinDate) {
+        const message = `Current min date (${this.minDate}) is bigger than new set max date`;
+        this.#sendConsoleMessage(message, 'warning');
+
+        this.minDate = new Date(this.maxDate);
+      }
+    }
+
+    const isMaxDateSmallerStartDate = this.#checkIfFirstDateSmaller(this.maxDate, this.startDate);
+
+    if (isMaxDateSmallerStartDate) {
+      const message = `Current start date (${this.startDate}) is bigger than new set max date`;
+      this.#sendConsoleMessage(message, 'warning');
+
+      this.startDate = new Date(this.maxDate);
+      this.currentStartDate = this.startDate;
+      this.selectedStartDate = this.startDate;
+    }
+
+    if (!this.singleCalendar) {
+      const isMaxDateSmallerEndDate = this.#checkIfFirstDateSmaller(this.maxDate, this.endDate);
+
+      if (isMaxDateSmallerEndDate) {
+        const message = `Current end date (${this.endDate}) is bigger than new set max date`;
+        this.#sendConsoleMessage(message, 'warning');
+
+        this.endDate = new Date(this.maxDate);
+        this.currentEndDate = this.endDate;
+        this.selectedEndDate = this.endDate;
+      }
+    }
+
+    this.#updateDateRangePickerElementsAfterUpdatingDate();
+  }
+
+  getGranularity() {
+    return this.granularity;
+  }
+
+  /**
+   * Method used to set the granularity of the Date Range Picker
+   * @param {String} granularity Available options ['hour', 'day', 'week', 'month', 'quarter', 'semester, 'year']
+   * @param {Boolean} avoidCallbackExecution Indicates if the "changeGranularityCallback" is executed
+   * @returns {void} Code execution stops if a granularity not available is sent
+   */
+  setGranularity(granularity, avoidCallbackExecution) {
+    const isAvailableGranularity = this.#granularitiesAvailable.includes(granularity);
+
+    if (!isAvailableGranularity) {
+      this.#sendConsoleMessage(`Granularity ${granularity} you are trying to set is not available`, 'warning');
+      return;
+    }
+
+    this.granularity = granularity;
+    this.#calendarGranularity = granularity;
+
+    if (this.showGranularityDropdown) {
+      this.granularityDropdown.value = granularity;
+    }
+
+    this.#changingGranularityLogics(avoidCallbackExecution);
+  }
+
+  getTimezone() {
+    return this.timezone;
+  }
+
+  setTimezone(timezone) {
+    this.timezone = timezone;
+  }
+
+  setHiddenRanges(ranges) {
+    this.hiddenRanges = ranges;
+    this.populateRangesContainer();
+  }
+
+  setDisabledRanges(ranges) {
+    this.disabledRanges = ranges;
+    this.populateRangesContainer();
+  }
+
+  setListOfDisabledDates(listOfDisabledDates) {
+    this.listOfDisabledDates = listOfDisabledDates;
+
+    this.populateStartCalendar();
+    if (!this.singleCalendar) {
+      this.populateEndCalendar();
+    }
+  }
+
+  /**
    * Method that takes care of returning the selected dates formatting them by the selected
    * granularity by the user
    * @param {Object} date The date object
@@ -1669,24 +1916,7 @@ class EverythingDateRangePicker {
       this.granularity = selectedGranularity;
       this.#calendarGranularity = selectedGranularity;
 
-      const timePickerVisibility = this.#calendarGranularity === 'hour' ? 'flex' : 'none';
-      this.#changeDisplayOfCalendarFooterContainers(timePickerVisibility);
-      this.populateStartCalendar();
-      this.#setStateOfCalendarArrows();
-      this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
-      if (!this.singleCalendar) {
-        this.populateEndCalendar();
-        this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
-      }
-
-      if (this.singleCalendar && this.showFastNavigationArrows) {
-        this.#setStateOfFastNavigationArrow(this.selectedStartDate, true);
-        this.#setStateOfFastNavigationArrow(this.selectedStartDate, false);
-      }
-
-      if (this.changeGranularityCallback) {
-        this.changeGranularityCallback();
-      }
+      this.#changingGranularityLogics();
     });
   }
 
@@ -1998,7 +2228,7 @@ class EverythingDateRangePicker {
 
         if (maxDateWeek) {
           const { week, year } = maxDateWeek;
-          isMaxDateSmaller = (dateWeek > week && dateWeek.year === year) || dateWeek.year > year;
+          isMaxDateSmaller = (dateWeek.week > week && dateWeek.year === year) || dateWeek.year > year;
         }
 
         if (isMinDateBigger || isMaxDateSmaller) {
@@ -2415,6 +2645,60 @@ class EverythingDateRangePicker {
       start: startOfWeek,
       end: endOfWeek,
     };
+  }
+
+  /**
+   * Method that contains the logics needed when the granularity of the Date Range Picker is
+   * changed
+   * @param {Boolean} avoidCallbackExecution Indicates if we want to avoid the execution of the
+   * changeGranularityCallback, this is mainly used to let the user choose if the want to
+   * execute the callback when using the "setGranularity" method
+   */
+  #changingGranularityLogics(avoidCallbackExecution = false) {
+    const timePickerVisibility = this.#calendarGranularity === 'hour' ? 'flex' : 'none';
+    this.#changeDisplayOfCalendarFooterContainers(timePickerVisibility);
+    this.populateStartCalendar();
+    this.#setStateOfCalendarArrows();
+    this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
+    if (!this.singleCalendar) {
+      this.populateEndCalendar();
+      this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
+    }
+
+    if (this.singleCalendar && this.showFastNavigationArrows) {
+      this.#setStateOfFastNavigationArrow(this.selectedStartDate, true);
+      this.#setStateOfFastNavigationArrow(this.selectedStartDate, false);
+    }
+
+    if (this.changeGranularityCallback && !avoidCallbackExecution) {
+      this.changeGranularityCallback();
+    }
+  }
+
+  #updateDateRangePickerElementsAfterUpdatingDate() {
+    this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
+    this.#setStateOfCalendarArrows();
+    this.populateStartCalendar();
+    if (!this.singleCalendar) {
+      this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
+      this.populateEndCalendar();
+    }
+    this.#populateTimePickers();
+
+    if (this.singleCalendar && this.showFastNavigationArrows) {
+      this.#setStateOfFastNavigationArrow(this.selectedStartDate, true);
+      this.#setStateOfFastNavigationArrow(this.selectedStartDate, false);
+    }
+  }
+
+  #sendConsoleMessage(message, type) {
+    switch (type) {
+      case 'warning':
+        console.warn(message);
+        break;
+      case 'error':
+        break;
+    }
   }
 }
 

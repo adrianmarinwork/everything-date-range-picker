@@ -8,6 +8,10 @@
   </head>
   <body>
     <button id="getDatesBtn" type="button">Get Dates</button>
+    <button id="setMaxDateBtn" type="button">Set Max Date</button>
+    <button id="setMinDateBtn" type="button">Set Min Date</button>
+    <button id="setStartDateBtn" type="button">Set Start Date</button>
+    <button id="setEndDateBtn" type="button">Set End Date</button>
     <div style="display: flex; gap: 1rem; margin: 1rem 0">
       <div style="padding: 1rem; border: 1px solid black">
         <p id="startDate"></p>
@@ -29,15 +33,15 @@
           endDate: '2024-12-31 20:05:29',
           firstDayOfWeek: 'Sunday',
           // granularity: 'hour',
-          // granularity: 'day',
-          granularity: 'week',
+          granularity: 'day',
+          // granularity: 'week',
           // granularity: 'month',
           // granularity: 'quarter',
           // granularity: 'semester',
           // granularity: 'year',
           // endDate: "2024-11-15 12:52:30",
-          // minDate: '2024-12-08 02:38:29',
-          // maxDate: '2024-12-31 20:05:29',
+          minDate: '2024-12-08 02:38:29',
+          maxDate: '2024-12-27 20:05:29',
           // singleCalendar: true,
           showFastNavigationArrows: true,
           showGranularityDropdown: true,
@@ -89,6 +93,30 @@
           document.getElementById('endDate').innerText = `End: ${dates.endDate}`;
           document.getElementById('endDateFrom').innerText = `End From: ${dates.endDateFrom}`;
           document.getElementById('endDateTo').innerText = `End To: ${dates.endDateTo}`;
+        });
+
+        const setMaxDateBtn = document.getElementById('setMaxDateBtn');
+        setMaxDateBtn.addEventListener('click', (event) => {
+          const maxDate = new Date('2023-05-13');
+          datePicker.setMaxDate(maxDate);
+        });
+
+        const setMinDateBtn = document.getElementById('setMinDateBtn');
+        setMinDateBtn.addEventListener('click', (event) => {
+          const minDate = new Date('2023-05-05');
+          datePicker.setMinDate(minDate);
+        });
+
+        const setStartDateBtn = document.getElementById('setStartDateBtn');
+        setStartDateBtn.addEventListener('click', (event) => {
+          const startDate = new Date('2023-05-05');
+          datePicker.setStartDate(startDate);
+        });
+
+        const setEndDateBtn = document.getElementById('setEndDateBtn');
+        setEndDateBtn.addEventListener('click', (event) => {
+          const endDate = new Date('2023-05-13');
+          datePicker.setEndDate(endDate);
         });
       });
     </script>
