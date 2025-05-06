@@ -136,6 +136,7 @@ class EverythingDateRangePicker {
     this.changeEndDateCallback = options.changeEndDateCallback || null;
     this.listOfDisabledDates = options.listOfDisabledDates || [];
     this.styleTheme = options.styleTheme || '';
+    this.customStyleVariables = options.customStyleVariables || null;
 
     // Lets make the different checks for the dates
     const isMinDateBigger = this.#checkIfFirstDateBigger(this.minDate, this.startDate);
@@ -457,7 +458,7 @@ class EverythingDateRangePicker {
       this.populateRangesContainer();
     }
 
-    this.display.addEventListener('click', () => this.toggleCalendar());
+    this.display.addEventListener('click', () => this.#toggleCalendar());
     document.addEventListener('click', (event) => this.documentClickHandler(event));
 
     if (this.granularity !== 'hour') {
@@ -491,7 +492,7 @@ class EverythingDateRangePicker {
     if (this.showApplyButton) {
       const applyButton = this.container.querySelector('.date-range-picker-apply-button');
       applyButton.addEventListener('click', (event) => {
-        this.toggleCalendar();
+        this.#toggleCalendar();
 
         if (this.applyDatesCallback) {
           this.applyDatesCallback();
@@ -501,12 +502,16 @@ class EverythingDateRangePicker {
 
     this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
     this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
+
+    if (this.customStyleVariables) {
+      this.#updateStyleOfDatePicker();
+    }
   }
 
   /**
    * Method to hide or show the calendar when clicking the container of .date-range-picker-display
    */
-  toggleCalendar() {
+  #toggleCalendar() {
     const currentDisplay = this.calendarContainer.style.display;
     this.calendarContainer.style.display = currentDisplay === 'block' ? 'none' : 'block';
   }
@@ -2839,6 +2844,15 @@ class EverythingDateRangePicker {
         break;
       case 'error':
         break;
+    }
+  }
+
+  #updateStyleOfDatePicker() {
+    for (const styleVariable in this.customStyleVariables) {
+      if (Object.prototype.hasOwnProperty.call(this.customStyleVariables, styleVariable)) {
+        const value = this.customStyleVariables[styleVariable];
+        this.container.querySelector('.main-date-range-picker-container').style.setProperty(styleVariable, value);
+      }
     }
   }
 }
