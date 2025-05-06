@@ -94,11 +94,6 @@ class EverythingDateRangePicker {
 
   constructor(containerId, options = {}) {
     this.container = document.getElementById(containerId);
-
-    console.log('containerId: ', containerId);
-    console.log('this.container: ', this.container);
-    console.log('options: ', options);
-
     this.startDate = options.startDate || new Date(new Date().setHours(0, 0, 0, 0));
     this.#checkValidityOfDateType('startDate');
     this.currentStartDate = this.startDate;
@@ -175,12 +170,25 @@ class EverythingDateRangePicker {
     this.initDatePicker();
   }
 
+  /**
+   * Method that takes care of checking if a date is an String, if it is we
+   * create a Date object from that String
+   * @param {Object|String} property The date we are going to check
+   */
   #checkValidityOfDateType(property) {
     if (typeof this[property] === 'string') {
       this[property] = new Date(this[property]);
     }
   }
 
+  /**
+   * Method that takes care if a parameter of the date picker exists, if not, the
+   * default value is returned
+   * @param {Boolean|String|Object} parameterValue The value of the parameter
+   * @param {Boolean|String|Object} defaultValue The default value that the parameter has to have
+   * @returns {Boolean|String|Object} If the parameterValue is null or undefined the defaultValue is
+   * returned, if not, the parameterValue
+   */
   #checkIfParameterExist(parameterValue, defaultValue) {
     if (parameterValue !== null && parameterValue !== undefined) {
       return parameterValue;
@@ -660,6 +668,13 @@ class EverythingDateRangePicker {
     }
   }
 
+  /**
+   * Method that takes care of calculating the new date we have to render
+   * in one of the calendar
+   * @param {Object} dateToUse The date we want to use to calculate the new date
+   * @param {Boolean} isPreviousArrow Indicates if we are handeling the case of one of the previous arrows
+   * @returns {Number} Timestamp of the new date calculate
+   */
   #calculateNewDate(dateToUse, isPreviousArrow) {
     let newDateToRender;
 
@@ -868,6 +883,11 @@ class EverythingDateRangePicker {
     }
   }
 
+  /**
+   * Method that takes care of grabing the title elements like the month name or year
+   * and attach the click event to be able to navigate between granularities
+   * @param {Object} calendarTitleElement The DOM element of the whole calendar title
+   */
   #attachClickCalendarTitleEvent(calendarTitleElement) {
     const listOfTitleElements = calendarTitleElement.querySelectorAll('.calendarTitleElement');
 
@@ -1259,6 +1279,12 @@ class EverythingDateRangePicker {
     return { date: formattedDate, from, to };
   }
 
+  /**
+   * Method that takes care of verifying that a dateElement as two digits, in the negative case
+   * we attach a 0 before the dateElement.
+   * @param {String|Number} dateElement The date element we have to verify, could be a month number or day
+   * @returns {String} The date element with two digits
+   */
   #verifyDateElementHasTwoDigits(dateElement) {
     return ('' + dateElement).length === 1 ? `0${dateElement}` : dateElement;
   }
@@ -1742,6 +1768,12 @@ class EverythingDateRangePicker {
     return calendarHTML;
   }
 
+  /**
+   * Method that takes care of getting the calendar cell attributes that we will have
+   * to add to the cell of the table, like if the cell is disabled, in range or selected.
+   * @param {Object} dateObject The date to check
+   * @returns {String} The DOM attributes that have to be attached to the DOM element
+   */
   #getCalendarCellAttributesToAdd(dateObject) {
     const disabled = this.#getIfCalendarElementDisabled(dateObject);
     const { selected, selectedStartDateIsSame, selectedEndDateIsSame } = this.#getIfCalendarElementSelected(dateObject);
@@ -2011,6 +2043,11 @@ class EverythingDateRangePicker {
     });
   }
 
+  /**
+   * Method that takes care of showing or hiding the hours and minutes dropdowns when
+   * the hour granularity is available and we move between granularities
+   * @param {String} display The CSS display value (none|flex)
+   */
   #changeDisplayOfCalendarFooterContainers(display) {
     const timePickerContainers = this.container.querySelectorAll('.calendar-footer');
     timePickerContainers.forEach((timePickerContainer) => {
@@ -2018,6 +2055,10 @@ class EverythingDateRangePicker {
     });
   }
 
+  /**
+   * Method that takes care of populating the hours and minute dropdowns
+   * of the hour granularity
+   */
   #populateTimePickers() {
     const hoursFormat = '24h';
     const startDateHoursDropdown = this.container.querySelector('.start-date-hours-dropdown');
@@ -2264,6 +2305,12 @@ class EverythingDateRangePicker {
     };
   }
 
+  /**
+   * Method that returns if a date cell is disabled taking into account the
+   * min and max date and the listOfDisabledDates
+   * @param {Object} date The date to check
+   * @returns {String} The attribute that will be added to the DOM element
+   */
   #getIfCalendarElementDisabled(date) {
     let disabled = '';
 
@@ -2402,6 +2449,11 @@ class EverythingDateRangePicker {
     return disabled;
   }
 
+  /**
+   * Method that returns if a date cell is selected
+   * @param {Object} date The date to check
+   * @returns {String} The attribute that will be added to the DOM element
+   */
   #getIfCalendarElementSelected(date) {
     let selected = '';
 
@@ -2821,6 +2873,11 @@ class EverythingDateRangePicker {
     }
   }
 
+  /**
+   * Method that takes care of updating the different elements of the date
+   * range picker, like the calendars, the hours and minutes dropdowns, the arrows and
+   * the visible inputs
+   */
   #updateDateRangePickerElementsAfterUpdatingDate() {
     this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
     this.#setStateOfCalendarArrows();
@@ -2847,6 +2904,10 @@ class EverythingDateRangePicker {
     }
   }
 
+  /**
+   * Method that takes care of updating the CSS variables of the date picker
+   * using the customStyleVariables from the user
+   */
   #updateStyleOfDatePicker() {
     for (const styleVariable in this.customStyleVariables) {
       if (Object.prototype.hasOwnProperty.call(this.customStyleVariables, styleVariable)) {
