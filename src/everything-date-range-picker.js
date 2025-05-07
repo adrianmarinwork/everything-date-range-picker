@@ -167,37 +167,378 @@ class EverythingDateRangePicker {
       this.selectedEndDate = this.endDate;
     }
 
-    this.initDatePicker();
+    this.#initDatePicker();
+  }
+
+  //#region PUBLIC METHODS
+
+  getSelectedDates() {
+    const startDateFormatted = this.getDateFormattedByGranularity(this.selectedStartDate);
+    let dates = {
+      granularity: this.granularity,
+      startDate: startDateFormatted.date,
+      startDateFrom: startDateFormatted.from,
+      startDateTo: startDateFormatted.to,
+    };
+
+    // If the user has the single calendar enabled we don't need to get the end date
+    if (this.singleCalendar) {
+      return dates;
+    }
+
+    const endDateFormatted = this.getDateFormattedByGranularity(this.selectedEndDate);
+    dates.endDate = endDateFormatted.date;
+    dates.endDateFrom = endDateFormatted.from;
+    dates.endDateTo = endDateFormatted.to;
+
+    return dates;
   }
 
   /**
-   * Method that takes care of checking if a date is an String, if it is we
-   * create a Date object from that String
-   * @param {Object|String} property The date we are going to check
+   * Method that takes care of returning the selected dates formatting them by the selected
+   * granularity by the user
+   * @param {Object} date The date object
+   * @param {Boolean} ignoreHoursForHourGranularity A boolean to ignore the hours when formatting the hour
+   * granularity
+   * @returns {Object} The formatted date, the from date of the granularity selected and the to date
    */
-  #checkValidityOfDateType(property) {
-    if (typeof this[property] === 'string') {
-      this[property] = new Date(this[property]);
+  getDateFormattedByGranularity(date, ignoreHoursForHourGranularity) {
+    const granularity = this.granularity;
+    const day = this.#verifyDateElementHasTwoDigits(date.getDate());
+    let month = this.#verifyDateElementHasTwoDigits(date.getMonth() + 1);
+    const year = date.getFullYear();
+    const hours = this.#verifyDateElementHasTwoDigits(date.getHours());
+    const minutes = this.#verifyDateElementHasTwoDigits(date.getMinutes());
+    let formattedDate = '';
+    let from = '';
+    let to = '';
+
+    switch (granularity) {
+      case 'hour':
+        formattedDate = `${year}-${month}-${day}`;
+        from = `${year}-${month}-${day}`;
+        to = `${year}-${month}-${day}`;
+
+        if (ignoreHoursForHourGranularity) {
+          break;
+        }
+
+        formattedDate += ` ${hours}:${minutes}`;
+        from += ` ${hours}:${minutes}`;
+        to += ` ${hours}:${minutes}`;
+        break;
+      case 'day':
+        formattedDate = `${year}-${month}-${day}`;
+        from = `${year}-${month}-${day} 00:00`;
+        to = `${year}-${month}-${day} 23:59`;
+        break;
+      case 'week': {
+        const { week, year } = this.#getWeekInfoOfDate(date);
+        const { start, end } = this.#getStartAndEndOfWeek(date);
+        const startMonth = this.#verifyDateElementHasTwoDigits(start.getMonth() + 1);
+        const startDate = this.#verifyDateElementHasTwoDigits(start.getDate());
+        const endMonth = this.#verifyDateElementHasTwoDigits(end.getMonth() + 1);
+        const endDate = this.#verifyDateElementHasTwoDigits(end.getDate());
+
+        formattedDate = `${year}-W${this.#verifyDateElementHasTwoDigits(week)}`;
+        from = `${start.getFullYear()}-${startMonth}-${startDate} 00:00`;
+        to = `${end.getFullYear()}-${endMonth}-${endDate} 23:59`;
+        break;
+      }
+      case 'month': {
+        formattedDate = `${year}-${month}`;
+        from = `${year}-${month}-01 00:00`;
+
+        const lastDayOfMonth = this.#getLastDayOfMonth(date);
+        to = `${year}-${month}-${lastDayOfMonth} 23:59`;
+        break;
+      }
+      case 'quarter': {
+        const { quarter, firstMonthQuarter } = this.#getQuarterOfMonth(month);
+        formattedDate = `${year}-${quarter}`;
+        from = `${year}-${firstMonthQuarter}-01 00:00`;
+
+        const numberMonth = parseInt(firstMonthQuarter) - 1;
+        const sumOfMonths = numberMonth + 3 > 12 ? 12 : numberMonth + 3;
+        const lastMonthOfQuarter = this.#verifyDateElementHasTwoDigits(sumOfMonths);
+        const lastDayOfLastMonth = this.#getLastDayOfMonth(`${year}-${lastMonthOfQuarter}-01`);
+        to = `${year}-${lastMonthOfQuarter}-${lastDayOfLastMonth} 23:59`;
+        break;
+      }
+      case 'semester': {
+        const { semester, firstMonthSemester } = this.#getSemesterOfMonth(month);
+        formattedDate = `${year}-${semester}`;
+        from = `${year}-${firstMonthSemester}-01 00:00`;
+
+        const numberMonth = parseInt(firstMonthSemester) - 1;
+        const sumOfMonths = numberMonth + 6 > 12 ? 12 : numberMonth + 6;
+        const lastMonthOfSemester = this.#verifyDateElementHasTwoDigits(sumOfMonths);
+        const lastDayOfLastMonth = this.#getLastDayOfMonth(`${year}-${lastMonthOfSemester}-01`);
+        to = `${year}-${lastMonthOfSemester}-${lastDayOfLastMonth} 23:59`;
+        break;
+      }
+      case 'year':
+        formattedDate = `${year}`;
+        from = `${year}-01-01 00:00`;
+        to = `${year}-12-31 23:59`;
+        break;
     }
+
+    return { date: formattedDate, from, to };
   }
 
   /**
-   * Method that takes care if a parameter of the date picker exists, if not, the
-   * default value is returned
-   * @param {Boolean|String|Object} parameterValue The value of the parameter
-   * @param {Boolean|String|Object} defaultValue The default value that the parameter has to have
-   * @returns {Boolean|String|Object} If the parameterValue is null or undefined the defaultValue is
-   * returned, if not, the parameterValue
+   * Method used to set the start date
+   * @param {Object|String} date The date that is going to be the start date
    */
-  #checkIfParameterExist(parameterValue, defaultValue) {
-    if (parameterValue !== null && parameterValue !== undefined) {
-      return parameterValue;
+  setStartDate(date) {
+    this.startDate = date;
+    this.#checkValidityOfDateType('startDate');
+    this.currentStartDate = this.startDate;
+    this.selectedStartDate = this.startDate;
+
+    if (this.minDate) {
+      const isMinDateBigger = this.#checkIfFirstDateBigger(this.minDate, this.startDate);
+
+      if (isMinDateBigger) {
+        const message = `Current min date (${this.minDate}) is bigger than new set start date`;
+        this.#sendConsoleMessage(message, 'warning');
+
+        this.minDate = new Date(this.startDate);
+      }
     }
 
-    return defaultValue;
+    if (this.maxDate) {
+      const isMaxDateSmaller = this.#checkIfFirstDateSmaller(this.maxDate, this.startDate);
+
+      if (isMaxDateSmaller) {
+        const message = `Current max date (${this.maxDate}) is smaller than new set start date`;
+        this.#sendConsoleMessage(message, 'warning');
+
+        this.maxDate = new Date(this.startDate);
+      }
+    }
+
+    const isEndDateSmaller = this.#checkIfFirstDateSmaller(this.endDate, this.startDate);
+
+    if (isEndDateSmaller) {
+      const message = `Current end date (${this.endDate}) is smaller than new set start date`;
+      this.#sendConsoleMessage(message, 'warning');
+
+      this.endDate = new Date(this.startDate);
+      this.currentEndDate = this.endDate;
+      this.selectedEndDate = this.endDate;
+    }
+
+    this.#updateDateRangePickerElementsAfterUpdatingDate();
   }
 
-  initDatePicker() {
+  /**
+   * Method used to set the end date
+   * @param {Object|String} date The date that is going to be the end date
+   */
+  setEndDate(date) {
+    this.endDate = date;
+    this.#checkValidityOfDateType('endDate');
+    this.currentEndDate = this.endDate;
+    this.selectedEndDate = this.endDate;
+
+    if (this.minDate) {
+      const isMinDateBigger = this.#checkIfFirstDateBigger(this.minDate, this.endDate);
+
+      if (isMinDateBigger) {
+        const message = `Current min date (${this.minDate}) is bigger than new set end date`;
+        this.#sendConsoleMessage(message, 'warning');
+
+        this.minDate = new Date(this.endDate);
+      }
+    }
+
+    if (this.maxDate) {
+      const isMaxDateSmaller = this.#checkIfFirstDateSmaller(this.maxDate, this.endDate);
+
+      if (isMaxDateSmaller) {
+        const message = `Current max date (${this.maxDate}) is smaller than new set end date`;
+        this.#sendConsoleMessage(message, 'warning');
+
+        this.maxDate = new Date(this.endDate);
+      }
+    }
+
+    const isStartDateBigger = this.#checkIfFirstDateBigger(this.startDate, this.endDate);
+
+    if (isStartDateBigger) {
+      const message = `Current start date (${this.startDate}) is bigger than new set end date`;
+      this.#sendConsoleMessage(message, 'warning');
+
+      this.startDate = new Date(this.endDate);
+      this.currentStartDate = this.startDate;
+      this.selectedStartDate = this.startDate;
+    }
+
+    this.#updateDateRangePickerElementsAfterUpdatingDate();
+  }
+
+  getMinDate() {
+    return this.minDate;
+  }
+
+  /**
+   * Method used to set the min date
+   * @param {Object|String} date The date that is going to be the min date
+   */
+  setMinDate(date) {
+    this.minDate = date;
+    this.#checkValidityOfDateType('minDate');
+
+    if (this.maxDate) {
+      const isMinDateBiggerMaxDate = this.#checkIfFirstDateBigger(this.minDate, this.maxDate);
+
+      if (isMinDateBiggerMaxDate) {
+        const message = `Current max date (${this.maxDate}) is smaller than new set min date`;
+        this.#sendConsoleMessage(message, 'warning');
+
+        this.maxDate = new Date(this.minDate);
+      }
+    }
+
+    const isMinDateBiggerStartDate = this.#checkIfFirstDateBigger(this.minDate, this.startDate);
+
+    if (isMinDateBiggerStartDate) {
+      const message = `Current start date (${this.startDate}) is smaller than new set min date`;
+      this.#sendConsoleMessage(message, 'warning');
+
+      this.startDate = new Date(this.minDate);
+      this.currentStartDate = this.startDate;
+      this.selectedStartDate = this.startDate;
+    }
+
+    if (!this.singleCalendar) {
+      const isMinDateBiggerEndDate = this.#checkIfFirstDateBigger(this.minDate, this.endDate);
+
+      if (isMinDateBiggerEndDate) {
+        const message = `Current end date (${this.endDate}) is smaller than new set min date`;
+        this.#sendConsoleMessage(message, 'warning');
+
+        this.endDate = new Date(this.minDate);
+        this.currentEndDate = this.endDate;
+        this.selectedEndDate = this.endDate;
+      }
+    }
+
+    this.#updateDateRangePickerElementsAfterUpdatingDate();
+  }
+
+  getMaxDate() {
+    return this.maxDate;
+  }
+
+  /**
+   * Method used to set the max date
+   * @param {Object|String} date The date that is going to be the max date
+   */
+  setMaxDate(date) {
+    this.maxDate = date;
+    this.#checkValidityOfDateType('maxDate');
+
+    if (this.minDate) {
+      const isMaxDateSmallerMinDate = this.#checkIfFirstDateSmaller(this.maxDate, this.minDate);
+
+      if (isMaxDateSmallerMinDate) {
+        const message = `Current min date (${this.minDate}) is bigger than new set max date`;
+        this.#sendConsoleMessage(message, 'warning');
+
+        this.minDate = new Date(this.maxDate);
+      }
+    }
+
+    const isMaxDateSmallerStartDate = this.#checkIfFirstDateSmaller(this.maxDate, this.startDate);
+
+    if (isMaxDateSmallerStartDate) {
+      const message = `Current start date (${this.startDate}) is bigger than new set max date`;
+      this.#sendConsoleMessage(message, 'warning');
+
+      this.startDate = new Date(this.maxDate);
+      this.currentStartDate = this.startDate;
+      this.selectedStartDate = this.startDate;
+    }
+
+    if (!this.singleCalendar) {
+      const isMaxDateSmallerEndDate = this.#checkIfFirstDateSmaller(this.maxDate, this.endDate);
+
+      if (isMaxDateSmallerEndDate) {
+        const message = `Current end date (${this.endDate}) is bigger than new set max date`;
+        this.#sendConsoleMessage(message, 'warning');
+
+        this.endDate = new Date(this.maxDate);
+        this.currentEndDate = this.endDate;
+        this.selectedEndDate = this.endDate;
+      }
+    }
+
+    this.#updateDateRangePickerElementsAfterUpdatingDate();
+  }
+
+  getGranularity() {
+    return this.granularity;
+  }
+
+  /**
+   * Method used to set the granularity of the Date Range Picker
+   * @param {String} granularity Available options ['hour', 'day', 'week', 'month', 'quarter', 'semester, 'year']
+   * @param {Boolean} avoidCallbackExecution Indicates if the "changeGranularityCallback" is executed
+   * @returns {void} Code execution stops if a granularity not available is sent
+   */
+  setGranularity(granularity, avoidCallbackExecution) {
+    const isAvailableGranularity = this.#granularitiesAvailable.includes(granularity);
+
+    if (!isAvailableGranularity) {
+      this.#sendConsoleMessage(`Granularity ${granularity} you are trying to set is not available`, 'warning');
+      return;
+    }
+
+    this.granularity = granularity;
+    this.#calendarGranularity = granularity;
+
+    if (this.showGranularityDropdown) {
+      this.granularityDropdown.value = granularity;
+    }
+
+    this.#changingGranularityLogics(avoidCallbackExecution);
+  }
+
+  getTimezone() {
+    return this.timezone;
+  }
+
+  setTimezone(timezone) {
+    this.timezone = timezone;
+  }
+
+  setHiddenRanges(ranges) {
+    this.hiddenRanges = ranges;
+    this.#populateRangesContainer();
+  }
+
+  setDisabledRanges(ranges) {
+    this.disabledRanges = ranges;
+    this.#populateRangesContainer();
+  }
+
+  setListOfDisabledDates(listOfDisabledDates) {
+    this.listOfDisabledDates = listOfDisabledDates;
+
+    this.#populateStartCalendar();
+    if (!this.singleCalendar) {
+      this.#populateEndCalendar();
+    }
+  }
+
+  //#endregion
+
+  //#region PRIVATE METHODS
+
+  #initDatePicker() {
     const {
       startDateEqualsMinDate,
       startDateEqualsMaxDate,
@@ -453,7 +794,7 @@ class EverythingDateRangePicker {
 
     // If the singleCalendar boolean is true we render only the start calendar
     if (this.singleCalendar) {
-      this.populateStartCalendar();
+      this.#populateStartCalendar();
       this.container.querySelector('.selected-dates-separator').remove();
       this.selectedEndDateElement.remove();
     } else {
@@ -461,13 +802,13 @@ class EverythingDateRangePicker {
       this.#endCalendarMonth = this.container.querySelector('.end-date-calendar-month');
       this.rangesContainer = this.container.querySelector('.ranges-container');
 
-      this.populateStartCalendar();
-      this.populateEndCalendar();
-      this.populateRangesContainer();
+      this.#populateStartCalendar();
+      this.#populateEndCalendar();
+      this.#populateRangesContainer();
     }
 
     this.display.addEventListener('click', () => this.#toggleCalendar());
-    document.addEventListener('click', (event) => this.documentClickHandler(event));
+    document.addEventListener('click', (event) => this.#documentClickHandler(event));
 
     if (this.granularity !== 'hour') {
       this.#changeDisplayOfCalendarFooterContainers('none');
@@ -486,7 +827,7 @@ class EverythingDateRangePicker {
     const listOfCalendarArrows = this.container.querySelectorAll('.calendar-arrow');
 
     listOfCalendarArrows.forEach((calendarArrow) => {
-      calendarArrow.addEventListener('click', (event) => this.changeRenderedCalendar(event));
+      calendarArrow.addEventListener('click', (event) => this.#changeRenderedCalendar(event));
     });
 
     if (this.showSetStartDayButton || this.showSetEndDayButton) {
@@ -528,771 +869,18 @@ class EverythingDateRangePicker {
    * Method to hide the calendar when clicking anywhere in the screen except the date range picker
    * @param {Object} event The click object that contains the info of the event
    */
-  documentClickHandler(event) {
+  #documentClickHandler(event) {
     if (!this.container.contains(event.target)) {
       this.calendarContainer.style.display = 'none';
     }
   }
 
-  /**
-   * Method to change the rendered calendar of the clicked side, this method runs when the user clicks the
-   * arrows rendered on the calendars
-   * @param {Object} event The click object that contains the info of the event
-   */
-  changeRenderedCalendar(event) {
-    event.stopPropagation();
-    const clickedArrow = event.target.closest('.calendar-arrow');
-    const isLeftCalendar = clickedArrow.className.includes('left');
-    const isPreviousArrow = clickedArrow.className.includes('previous');
-
-    let dateToUse = this.currentStartDate;
-    let calendarToUse = this.startCalendar;
-
-    // If is the right calendar
-    if (!isLeftCalendar) {
-      dateToUse = this.currentEndDate;
-      calendarToUse = this.endCalendar;
-    }
-
-    let newDateToRender = this.#calculateNewDate(dateToUse, isPreviousArrow);
-    newDateToRender = new Date(newDateToRender);
-
-    if (isLeftCalendar) {
-      this.currentStartDate = new Date(newDateToRender);
-    } else {
-      this.currentEndDate = new Date(newDateToRender);
-    }
-
-    const calendarSide = isLeftCalendar ? 'left' : 'right';
-    const calendarHTML = this.#generateCalendar(newDateToRender, calendarSide);
-    calendarToUse.innerHTML = calendarHTML;
-    this.#attachClickCellEvent(calendarToUse, calendarSide);
-
-    const {
-      startDateEqualsMinDate,
-      startDateEqualsMaxDate,
-      endDateEqualsMinDate,
-      endDateEqualsMaxDate,
-      startDateEqualsEndDate,
-    } = this.#checkDatesToRenderArrows();
-
-    // Cases when the clicked arrow is from the left calendar
-    if (isLeftCalendar) {
-      // Cases to disable arrows
-
-      /*
-        1st .- The user clicked the previous arrow and the start date equals the min date (hide 'previous' arrow)
-        The user clicked the next arrow:
-          2nd .- The start date equals the end date (hide 'next' arrow)
-          3rd .- The start date equals the max date (hide 'next' arrow)
-      */
-      if (
-        (isPreviousArrow && startDateEqualsMinDate) ||
-        (!isPreviousArrow && startDateEqualsEndDate) ||
-        (!isPreviousArrow && startDateEqualsMaxDate)
-      ) {
-        clickedArrow.style.display = 'none';
-      }
-
-      // Cases to enable arrows
-
-      // The user clicked the previous arrow (enables the 'next' arrow)
-      if (isPreviousArrow) {
-        const nextArrow = this.calendarContainer.querySelector('.left-calendar-next-arrow');
-        nextArrow.style.display = 'flex';
-
-        if (!this.singleCalendar) {
-          const rightCalendarPreviousArrow = this.calendarContainer.querySelector('.right-calendar-previous-arrow');
-          rightCalendarPreviousArrow.style.display = 'flex';
-        }
-      }
-
-      if (!isPreviousArrow) {
-        const previousArrow = this.calendarContainer.querySelector('.left-calendar-previous-arrow');
-        previousArrow.style.display = 'flex';
-
-        /* 
-          In the case that the next arrow is clicked in the left calendar and the
-          start and end date are equal, the previous arrow in the right calendar has to be
-          disabled too
-        */
-        if (!this.singleCalendar && startDateEqualsEndDate) {
-          const rightCalendarPreviousArrow = this.calendarContainer.querySelector('.right-calendar-previous-arrow');
-          rightCalendarPreviousArrow.style.display = 'none';
-        }
-      }
-    }
-
-    // Cases when the clicked arrow is from the right calendar
-    if (!isLeftCalendar) {
-      // Cases to disable arrows
-
-      /*
-        1st .- The user clicked the previous arrow and the end date equals the min date (hide 'previous' arrow)
-        2nd .- The user clicked the previous arrow and the end date equals the start date (hide 'previous' arrow)
-        3rd .- The user clicked the next arrow the end date equals the max date (hide 'next' arrow)
-      */
-      if (
-        (isPreviousArrow && endDateEqualsMinDate) ||
-        (isPreviousArrow && startDateEqualsEndDate) ||
-        (!isPreviousArrow && endDateEqualsMaxDate)
-      ) {
-        clickedArrow.style.display = 'none';
-      }
-
-      // Cases to enable arrows
-
-      // The user clicked the previous arrow (enables the 'next' arrow)
-      if (isPreviousArrow) {
-        const nextArrow = this.calendarContainer.querySelector('.right-calendar-next-arrow');
-        nextArrow.style.display = 'flex';
-
-        /* 
-          In the case that the previous arrow is clicked in the right calendar and the
-          start and end date are equal, the next arrow in the left calendar has to be
-          disabled too
-        */
-        if (startDateEqualsEndDate) {
-          const leftCalendarNextArrow = this.calendarContainer.querySelector('.left-calendar-next-arrow');
-          leftCalendarNextArrow.style.display = 'none';
-        }
-      }
-
-      if (!isPreviousArrow) {
-        const previousArrow = this.calendarContainer.querySelector('.right-calendar-previous-arrow');
-        previousArrow.style.display = 'flex';
-
-        const leftCalendarNextArrow = this.calendarContainer.querySelector('.left-calendar-next-arrow');
-        leftCalendarNextArrow.style.display = 'flex';
-      }
-    }
-  }
-
-  /**
-   * Method that takes care of calculating the new date we have to render
-   * in one of the calendar
-   * @param {Object} dateToUse The date we want to use to calculate the new date
-   * @param {Boolean} isPreviousArrow Indicates if we are handeling the case of one of the previous arrows
-   * @returns {Number} Timestamp of the new date calculate
-   */
-  #calculateNewDate(dateToUse, isPreviousArrow) {
-    let newDateToRender;
-
-    switch (this.#calendarGranularity) {
-      case 'hour':
-      case 'day':
-      case 'week': {
-        const newMonth = isPreviousArrow ? dateToUse.getMonth() - 1 : dateToUse.getMonth() + 1;
-        newDateToRender = new Date(new Date(dateToUse).setDate(1)).setMonth(newMonth);
-        break;
-      }
-      case 'month':
-      case 'quarter':
-      case 'semester': {
-        const newYear = isPreviousArrow ? dateToUse.getFullYear() - 1 : dateToUse.getFullYear() + 1;
-        newDateToRender = new Date(dateToUse).setFullYear(newYear);
-        break;
-      }
-      case 'year':
-        const newYear = isPreviousArrow ? dateToUse.getFullYear() - 10 : dateToUse.getFullYear() + 10;
-        newDateToRender = new Date(dateToUse).setFullYear(newYear);
-        break;
-    }
-
-    return newDateToRender;
-  }
-
-  /**
-   * Method that takes care of attaching the click event to the cells in the calendar
-   * that contains the dates
-   * @param {Object} calendarElement The DOM element of the calendar
-   * @param {String} calendarSide The side of the calendar calling this method
-   */
-  #attachClickCellEvent(calendarElement, calendarSide) {
-    const listOfDateCells = calendarElement.querySelectorAll('.calendar-clickable-cell');
-
-    const clickEventFnct = (event) => {
-      event.stopPropagation();
-
-      if (this.granularity !== this.#calendarGranularity) {
-        let newGranularity = this.granularity;
-
-        if (['month', 'quarter', 'semester'].includes(this.granularity)) {
-          newGranularity = this.granularity;
-        } else if (this.#calendarGranularity === 'year' && ['hour', 'day', 'week'].includes(this.granularity)) {
-          newGranularity = 'month';
-        }
-
-        const dateClicked = event.target.parentElement.getAttribute('data-value');
-        if (calendarSide === 'left') {
-          this.currentStartDate = new Date(dateClicked);
-        } else {
-          this.currentEndDate = new Date(dateClicked);
-        }
-
-        this.#calendarGranularity = newGranularity;
-
-        if (this.#calendarGranularity === 'hour') {
-          this.#changeDisplayOfCalendarFooterContainers('flex');
-        }
-
-        this.populateStartCalendar();
-        if (!this.singleCalendar) {
-          this.populateEndCalendar();
-        }
-        this.#setStateOfCalendarArrows();
-        return;
-      }
-
-      this.saveClickedDate(event);
-    };
-
-    listOfDateCells.forEach((dateCell) => {
-      dateCell.addEventListener('click', clickEventFnct);
-    });
-  }
-
-  /**
-   * Method that takes care of saving the clicked date, this method runs when the user clicks
-   * a cell containing a date
-   * @param {Object} event The click object that contains the info of the event
-   */
-  saveClickedDate(event) {
-    let dateClicked = event.target.parentElement.getAttribute('data-value');
-    if (!dateClicked) {
-      return;
-    }
-
-    let { startHours, startMinutes, endHours, endMinutes } = this.#getSelectedStartAndEndHoursMinutes();
-
-    if (this.singleCalendar || this.#timesClickedDate === 0) {
-      if (this.granularity === 'hour') {
-        const isStartEqualMax = this.#checkIfDatesSameDay(new Date(dateClicked), this.maxDate);
-        const isStartEqualEnd = this.#checkIfDatesSameDay(new Date(dateClicked), this.selectedEndDate);
-        const isStartEqualMin = this.#checkIfDatesSameDay(new Date(dateClicked), this.minDate);
-        const maxDateHours = this.maxDate ? this.maxDate.getHours() : false;
-        const maxDateMinutes = this.maxDate ? this.maxDate.getMinutes() : false;
-        const minDateHours = this.minDate ? this.minDate.getHours() : false;
-        const minDateMinutes = this.minDate ? this.minDate.getMinutes() : false;
-
-        // Start Date hours or minutes smaller than Min Date
-        if (this.minDate && isStartEqualMin) {
-          if (parseInt(startHours) < minDateHours) {
-            startHours = minDateHours;
-          }
-
-          if (`${startHours}` === `${minDateHours}` && this.selectedStartDate.getMinutes() < minDateMinutes) {
-            startMinutes = minDateMinutes;
-          }
-        }
-
-        // Start Date hours or minutes bigger than End Date or Max Date
-        if (this.singleCalendar && this.maxDate && isStartEqualMax) {
-          if (parseInt(startHours) > maxDateHours) {
-            startHours = maxDateHours;
-          }
-
-          if (`${startHours}` === `${maxDateHours}` && this.selectedStartDate.getMinutes() > maxDateMinutes) {
-            startMinutes = maxDateMinutes;
-          }
-        } else if (!this.singleCalendar && isStartEqualEnd) {
-          if (parseInt(startHours) > parseInt(endHours)) {
-            startHours = endHours;
-          }
-
-          if (`${startHours}` === `${endHours}` && this.selectedStartDate.getMinutes() > parseInt(endMinutes)) {
-            startMinutes = endMinutes;
-          }
-        }
-
-        startHours = this.#verifyDateElementHasTwoDigits(startHours);
-        startMinutes = this.#verifyDateElementHasTwoDigits(startMinutes);
-        dateClicked += ` ${startHours}:${startMinutes}`;
-      }
-
-      this.selectedStartDate = new Date(dateClicked);
-      this.#timesClickedDate = 1;
-      this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
-      this.populateStartCalendar();
-      if (!this.singleCalendar) {
-        this.populateEndCalendar();
-      }
-      this.#populateTimePickers();
-
-      if (this.singleCalendar && this.showFastNavigationArrows) {
-        this.#setStateOfFastNavigationArrow(this.selectedStartDate, true);
-        this.#setStateOfFastNavigationArrow(this.selectedStartDate, false);
-      }
-
-      if (this.changeStartDateCallback) {
-        this.changeStartDateCallback();
-      }
-      return;
-    }
-
-    if (this.granularity === 'hour') {
-      const isEndEqualMax = this.#checkIfDatesSameDay(new Date(dateClicked), this.maxDate);
-      const isEndEqualStart = this.#checkIfDatesSameDay(new Date(dateClicked), this.selectedStartDate);
-      const maxDateHours = this.maxDate ? this.maxDate.getHours() : false;
-      const maxDateMinutes = this.maxDate ? this.maxDate.getMinutes() : false;
-
-      // End Date hours or minutes smaller than Start Date
-      if (isEndEqualStart) {
-        if (parseInt(endHours) < parseInt(startHours)) {
-          endHours = startHours;
-        }
-
-        if (`${endHours}` === `${startHours}` && this.selectedEndDate.getMinutes() < parseInt(startMinutes)) {
-          endMinutes = startMinutes;
-        }
-      }
-
-      // End Date hours or minutes bigger than Max Date
-      if (this.maxDate && isEndEqualMax) {
-        if (parseInt(endHours) > maxDateHours) {
-          endHours = maxDateHours;
-        }
-
-        if (`${endHours}` === `${maxDateHours}` && this.selectedEndDate.getMinutes() > maxDateMinutes) {
-          endMinutes = maxDateMinutes;
-        }
-      }
-
-      dateClicked += ` ${endHours}:${endMinutes}`;
-    }
-
-    this.selectedEndDate = new Date(dateClicked);
-
-    // Case where new selectedEndDate is smaller than selectedStartDate
-    const selectedEndDateSmaller = this.#checkIfFirstDateSmaller(this.selectedEndDate, this.selectedStartDate);
-    if (selectedEndDateSmaller) {
-      this.selectedEndDate = this.selectedStartDate;
-      this.selectedStartDate = new Date(dateClicked);
-
-      this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
-    }
-
-    this.#timesClickedDate = 0;
-    this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
-    this.populateStartCalendar();
-    this.populateEndCalendar();
-    this.#populateTimePickers();
-
-    if (this.changeEndDateCallback) {
-      this.changeEndDateCallback();
-    }
-  }
-
-  /**
-   * Method that takes care of grabing the title elements like the month name or year
-   * and attach the click event to be able to navigate between granularities
-   * @param {Object} calendarTitleElement The DOM element of the whole calendar title
-   */
-  #attachClickCalendarTitleEvent(calendarTitleElement) {
-    const listOfTitleElements = calendarTitleElement.querySelectorAll('.calendarTitleElement');
-
-    const clickEventFnct = (event) => {
-      event.stopPropagation();
-
-      const clickedValue = event.target.getAttribute('data-value');
-      if (clickedValue === 'year' && this.#calendarGranularity === 'year') {
-        return;
-      }
-
-      this.#calendarGranularity = clickedValue;
-
-      if (this.#calendarGranularity !== 'hour') {
-        this.#changeDisplayOfCalendarFooterContainers('none');
-      }
-
-      this.populateStartCalendar();
-      if (!this.singleCalendar) {
-        this.populateEndCalendar();
-      }
-      this.#setStateOfCalendarArrows();
-    };
-
-    listOfTitleElements.forEach((titleElement) => {
-      titleElement.addEventListener('click', clickEventFnct);
-    });
-  }
-
-  getSelectedDates() {
-    const startDateFormatted = this.getDateFormattedByGranularity(this.selectedStartDate);
-    let dates = {
-      granularity: this.granularity,
-      startDate: startDateFormatted.date,
-      startDateFrom: startDateFormatted.from,
-      startDateTo: startDateFormatted.to,
-    };
-
-    // If the user has the single calendar enabled we don't need to get the end date
-    if (this.singleCalendar) {
-      return dates;
-    }
-
-    const endDateFormatted = this.getDateFormattedByGranularity(this.selectedEndDate);
-    dates.endDate = endDateFormatted.date;
-    dates.endDateFrom = endDateFormatted.from;
-    dates.endDateTo = endDateFormatted.to;
-
-    return dates;
-  }
-
-  /**
-   * Method used to set the start date
-   * @param {Object|String} date The date that is going to be the start date
-   */
-  setStartDate(date) {
-    this.startDate = date;
-    this.#checkValidityOfDateType('startDate');
-    this.currentStartDate = this.startDate;
-    this.selectedStartDate = this.startDate;
-
-    if (this.minDate) {
-      const isMinDateBigger = this.#checkIfFirstDateBigger(this.minDate, this.startDate);
-
-      if (isMinDateBigger) {
-        const message = `Current min date (${this.minDate}) is bigger than new set start date`;
-        this.#sendConsoleMessage(message, 'warning');
-
-        this.minDate = new Date(this.startDate);
-      }
-    }
-
-    if (this.maxDate) {
-      const isMaxDateSmaller = this.#checkIfFirstDateSmaller(this.maxDate, this.startDate);
-
-      if (isMaxDateSmaller) {
-        const message = `Current max date (${this.maxDate}) is smaller than new set start date`;
-        this.#sendConsoleMessage(message, 'warning');
-
-        this.maxDate = new Date(this.startDate);
-      }
-    }
-
-    const isEndDateSmaller = this.#checkIfFirstDateSmaller(this.endDate, this.startDate);
-
-    if (isEndDateSmaller) {
-      const message = `Current end date (${this.endDate}) is smaller than new set start date`;
-      this.#sendConsoleMessage(message, 'warning');
-
-      this.endDate = new Date(this.startDate);
-      this.currentEndDate = this.endDate;
-      this.selectedEndDate = this.endDate;
-    }
-
-    this.#updateDateRangePickerElementsAfterUpdatingDate();
-  }
-
-  /**
-   * Method used to set the end date
-   * @param {Object|String} date The date that is going to be the end date
-   */
-  setEndDate(date) {
-    this.endDate = date;
-    this.#checkValidityOfDateType('endDate');
-    this.currentEndDate = this.endDate;
-    this.selectedEndDate = this.endDate;
-
-    if (this.minDate) {
-      const isMinDateBigger = this.#checkIfFirstDateBigger(this.minDate, this.endDate);
-
-      if (isMinDateBigger) {
-        const message = `Current min date (${this.minDate}) is bigger than new set end date`;
-        this.#sendConsoleMessage(message, 'warning');
-
-        this.minDate = new Date(this.endDate);
-      }
-    }
-
-    if (this.maxDate) {
-      const isMaxDateSmaller = this.#checkIfFirstDateSmaller(this.maxDate, this.endDate);
-
-      if (isMaxDateSmaller) {
-        const message = `Current max date (${this.maxDate}) is smaller than new set end date`;
-        this.#sendConsoleMessage(message, 'warning');
-
-        this.maxDate = new Date(this.endDate);
-      }
-    }
-
-    const isStartDateBigger = this.#checkIfFirstDateBigger(this.startDate, this.endDate);
-
-    if (isStartDateBigger) {
-      const message = `Current start date (${this.startDate}) is bigger than new set end date`;
-      this.#sendConsoleMessage(message, 'warning');
-
-      this.startDate = new Date(this.endDate);
-      this.currentStartDate = this.startDate;
-      this.selectedStartDate = this.startDate;
-    }
-
-    this.#updateDateRangePickerElementsAfterUpdatingDate();
-  }
-
-  getMinDate() {
-    return this.minDate;
-  }
-
-  /**
-   * Method used to set the min date
-   * @param {Object|String} date The date that is going to be the min date
-   */
-  setMinDate(date) {
-    this.minDate = date;
-    this.#checkValidityOfDateType('minDate');
-
-    if (this.maxDate) {
-      const isMinDateBiggerMaxDate = this.#checkIfFirstDateBigger(this.minDate, this.maxDate);
-
-      if (isMinDateBiggerMaxDate) {
-        const message = `Current max date (${this.maxDate}) is smaller than new set min date`;
-        this.#sendConsoleMessage(message, 'warning');
-
-        this.maxDate = new Date(this.minDate);
-      }
-    }
-
-    const isMinDateBiggerStartDate = this.#checkIfFirstDateBigger(this.minDate, this.startDate);
-
-    if (isMinDateBiggerStartDate) {
-      const message = `Current start date (${this.startDate}) is smaller than new set min date`;
-      this.#sendConsoleMessage(message, 'warning');
-
-      this.startDate = new Date(this.minDate);
-      this.currentStartDate = this.startDate;
-      this.selectedStartDate = this.startDate;
-    }
-
-    if (!this.singleCalendar) {
-      const isMinDateBiggerEndDate = this.#checkIfFirstDateBigger(this.minDate, this.endDate);
-
-      if (isMinDateBiggerEndDate) {
-        const message = `Current end date (${this.endDate}) is smaller than new set min date`;
-        this.#sendConsoleMessage(message, 'warning');
-
-        this.endDate = new Date(this.minDate);
-        this.currentEndDate = this.endDate;
-        this.selectedEndDate = this.endDate;
-      }
-    }
-
-    this.#updateDateRangePickerElementsAfterUpdatingDate();
-  }
-
-  getMaxDate() {
-    return this.maxDate;
-  }
-
-  /**
-   * Method used to set the max date
-   * @param {Object|String} date The date that is going to be the max date
-   */
-  setMaxDate(date) {
-    this.maxDate = date;
-    this.#checkValidityOfDateType('maxDate');
-
-    if (this.minDate) {
-      const isMaxDateSmallerMinDate = this.#checkIfFirstDateSmaller(this.maxDate, this.minDate);
-
-      if (isMaxDateSmallerMinDate) {
-        const message = `Current min date (${this.minDate}) is bigger than new set max date`;
-        this.#sendConsoleMessage(message, 'warning');
-
-        this.minDate = new Date(this.maxDate);
-      }
-    }
-
-    const isMaxDateSmallerStartDate = this.#checkIfFirstDateSmaller(this.maxDate, this.startDate);
-
-    if (isMaxDateSmallerStartDate) {
-      const message = `Current start date (${this.startDate}) is bigger than new set max date`;
-      this.#sendConsoleMessage(message, 'warning');
-
-      this.startDate = new Date(this.maxDate);
-      this.currentStartDate = this.startDate;
-      this.selectedStartDate = this.startDate;
-    }
-
-    if (!this.singleCalendar) {
-      const isMaxDateSmallerEndDate = this.#checkIfFirstDateSmaller(this.maxDate, this.endDate);
-
-      if (isMaxDateSmallerEndDate) {
-        const message = `Current end date (${this.endDate}) is bigger than new set max date`;
-        this.#sendConsoleMessage(message, 'warning');
-
-        this.endDate = new Date(this.maxDate);
-        this.currentEndDate = this.endDate;
-        this.selectedEndDate = this.endDate;
-      }
-    }
-
-    this.#updateDateRangePickerElementsAfterUpdatingDate();
-  }
-
-  getGranularity() {
-    return this.granularity;
-  }
-
-  /**
-   * Method used to set the granularity of the Date Range Picker
-   * @param {String} granularity Available options ['hour', 'day', 'week', 'month', 'quarter', 'semester, 'year']
-   * @param {Boolean} avoidCallbackExecution Indicates if the "changeGranularityCallback" is executed
-   * @returns {void} Code execution stops if a granularity not available is sent
-   */
-  setGranularity(granularity, avoidCallbackExecution) {
-    const isAvailableGranularity = this.#granularitiesAvailable.includes(granularity);
-
-    if (!isAvailableGranularity) {
-      this.#sendConsoleMessage(`Granularity ${granularity} you are trying to set is not available`, 'warning');
-      return;
-    }
-
-    this.granularity = granularity;
-    this.#calendarGranularity = granularity;
-
-    if (this.showGranularityDropdown) {
-      this.granularityDropdown.value = granularity;
-    }
-
-    this.#changingGranularityLogics(avoidCallbackExecution);
-  }
-
-  getTimezone() {
-    return this.timezone;
-  }
-
-  setTimezone(timezone) {
-    this.timezone = timezone;
-  }
-
-  setHiddenRanges(ranges) {
-    this.hiddenRanges = ranges;
-    this.populateRangesContainer();
-  }
-
-  setDisabledRanges(ranges) {
-    this.disabledRanges = ranges;
-    this.populateRangesContainer();
-  }
-
-  setListOfDisabledDates(listOfDisabledDates) {
-    this.listOfDisabledDates = listOfDisabledDates;
-
-    this.populateStartCalendar();
-    if (!this.singleCalendar) {
-      this.populateEndCalendar();
-    }
-  }
-
-  /**
-   * Method that takes care of returning the selected dates formatting them by the selected
-   * granularity by the user
-   * @param {Object} date The date object
-   * @param {Boolean} ignoreHoursForHourGranularity A boolean to ignore the hours when formatting the hour
-   * granularity
-   * @returns {Object} The formatted date, the from date of the granularity selected and the to date
-   */
-  getDateFormattedByGranularity(date, ignoreHoursForHourGranularity) {
-    const granularity = this.granularity;
-    const day = this.#verifyDateElementHasTwoDigits(date.getDate());
-    let month = this.#verifyDateElementHasTwoDigits(date.getMonth() + 1);
-    const year = date.getFullYear();
-    const hours = this.#verifyDateElementHasTwoDigits(date.getHours());
-    const minutes = this.#verifyDateElementHasTwoDigits(date.getMinutes());
-    let formattedDate = '';
-    let from = '';
-    let to = '';
-
-    switch (granularity) {
-      case 'hour':
-        formattedDate = `${year}-${month}-${day}`;
-        from = `${year}-${month}-${day}`;
-        to = `${year}-${month}-${day}`;
-
-        if (ignoreHoursForHourGranularity) {
-          break;
-        }
-
-        formattedDate += ` ${hours}:${minutes}`;
-        from += ` ${hours}:${minutes}`;
-        to += ` ${hours}:${minutes}`;
-        break;
-      case 'day':
-        formattedDate = `${year}-${month}-${day}`;
-        from = `${year}-${month}-${day} 00:00`;
-        to = `${year}-${month}-${day} 23:59`;
-        break;
-      case 'week': {
-        const { week, year } = this.#getWeekInfoOfDate(date);
-        const { start, end } = this.#getStartAndEndOfWeek(date);
-        const startMonth = this.#verifyDateElementHasTwoDigits(start.getMonth() + 1);
-        const startDate = this.#verifyDateElementHasTwoDigits(start.getDate());
-        const endMonth = this.#verifyDateElementHasTwoDigits(end.getMonth() + 1);
-        const endDate = this.#verifyDateElementHasTwoDigits(end.getDate());
-
-        formattedDate = `${year}-W${this.#verifyDateElementHasTwoDigits(week)}`;
-        from = `${start.getFullYear()}-${startMonth}-${startDate} 00:00`;
-        to = `${end.getFullYear()}-${endMonth}-${endDate} 23:59`;
-        break;
-      }
-      case 'month': {
-        formattedDate = `${year}-${month}`;
-        from = `${year}-${month}-01 00:00`;
-
-        const lastDayOfMonth = this.#getLastDayOfMonth(date);
-        to = `${year}-${month}-${lastDayOfMonth} 23:59`;
-        break;
-      }
-      case 'quarter': {
-        const { quarter, firstMonthQuarter } = this.#getQuarterOfMonth(month);
-        formattedDate = `${year}-${quarter}`;
-        from = `${year}-${firstMonthQuarter}-01 00:00`;
-
-        const numberMonth = parseInt(firstMonthQuarter) - 1;
-        const sumOfMonths = numberMonth + 3 > 12 ? 12 : numberMonth + 3;
-        const lastMonthOfQuarter = this.#verifyDateElementHasTwoDigits(sumOfMonths);
-        const lastDayOfLastMonth = this.#getLastDayOfMonth(`${year}-${lastMonthOfQuarter}-01`);
-        to = `${year}-${lastMonthOfQuarter}-${lastDayOfLastMonth} 23:59`;
-        break;
-      }
-      case 'semester': {
-        const { semester, firstMonthSemester } = this.#getSemesterOfMonth(month);
-        formattedDate = `${year}-${semester}`;
-        from = `${year}-${firstMonthSemester}-01 00:00`;
-
-        const numberMonth = parseInt(firstMonthSemester) - 1;
-        const sumOfMonths = numberMonth + 6 > 12 ? 12 : numberMonth + 6;
-        const lastMonthOfSemester = this.#verifyDateElementHasTwoDigits(sumOfMonths);
-        const lastDayOfLastMonth = this.#getLastDayOfMonth(`${year}-${lastMonthOfSemester}-01`);
-        to = `${year}-${lastMonthOfSemester}-${lastDayOfLastMonth} 23:59`;
-        break;
-      }
-      case 'year':
-        formattedDate = `${year}`;
-        from = `${year}-01-01 00:00`;
-        to = `${year}-12-31 23:59`;
-        break;
-    }
-
-    return { date: formattedDate, from, to };
-  }
-
-  /**
-   * Method that takes care of verifying that a dateElement as two digits, in the negative case
-   * we attach a 0 before the dateElement.
-   * @param {String|Number} dateElement The date element we have to verify, could be a month number or day
-   * @returns {String} The date element with two digits
-   */
-  #verifyDateElementHasTwoDigits(dateElement) {
-    return ('' + dateElement).length === 1 ? `0${dateElement}` : dateElement;
-  }
+  //#region Calendars Logics
 
   /**
    * Method that takes care of populate the start calendar with the start date
    */
-  populateStartCalendar() {
+  #populateStartCalendar() {
     const startDate = this.currentStartDate;
     const calendarHTML = this.#generateCalendar(startDate, 'left');
     this.startCalendar.innerHTML = calendarHTML;
@@ -1302,116 +890,11 @@ class EverythingDateRangePicker {
   /**
    * Method that takes care of populate the end calendar with the end date
    */
-  populateEndCalendar() {
+  #populateEndCalendar() {
     const endDate = this.currentEndDate;
     const calendarHTML = this.#generateCalendar(endDate, 'right');
     this.endCalendar.innerHTML = calendarHTML;
     this.#attachClickCellEvent(this.endCalendar, 'right');
-  }
-
-  /**
-   * Method that takes care of populate the ranges
-   */
-  populateRangesContainer() {
-    if (this.hideRanges) {
-      this.rangesContainer.style.display = 'none';
-      return;
-    }
-
-    if (this.appendToDefaultRanges) {
-      const updatedRanges = [...this.ranges];
-
-      for (let i = 0; i < this.customRanges.length; i++) {
-        const customRange = this.customRanges[i];
-        if (customRange.position) {
-          updatedRanges.splice(customRange.position, 0, customRange);
-        } else {
-          updatedRanges.push(customRange);
-        }
-      }
-
-      this.ranges = updatedRanges;
-    } else if (this.customRanges.length) {
-      this.ranges = this.customRanges;
-    }
-
-    let listOfRangesHTML = `<ul class="calendar-ranges-list">`;
-
-    for (let i = 0; i < this.ranges.length; i++) {
-      let range = this.ranges[i];
-      const isHidden = this.hiddenRanges.some((rangeToHide) => rangeToHide === range.label);
-      const isDisabled = this.disabledRanges.some((rangeToDisable) => rangeToDisable === range.label);
-      const style = isHidden ? 'style="display: none"' : '';
-      const disabledAttr = isDisabled ? 'disabled' : '';
-
-      listOfRangesHTML += `<li class="calendar-ranges-list-element" ${style} ${disabledAttr}>${range.label}</li>`;
-    }
-
-    listOfRangesHTML += `</ul>`;
-    this.rangesContainer.innerHTML = listOfRangesHTML;
-
-    const listElements = this.rangesContainer.querySelectorAll('.calendar-ranges-list-element');
-
-    listElements.forEach((listElement) =>
-      listElement.addEventListener('click', (event) => this.clickRangeListElementEvent(event))
-    );
-  }
-
-  clickRangeListElementEvent(event) {
-    const listRangeElement = event.target;
-    const rangeText = listRangeElement.innerText;
-    const rangeObj = this.ranges.find((range) => range.label === rangeText);
-
-    if (!rangeObj) {
-      return;
-    }
-
-    const isMinDateBigger = this.#checkIfFirstDateBigger(this.minDate, rangeObj.startDate);
-    const isMaxDateSmaller = this.#checkIfFirstDateSmaller(this.maxDate, rangeObj.endDate);
-
-    if (isMinDateBigger) {
-      rangeObj.startDate = this.minDate;
-
-      const isStartBigger = this.#checkIfFirstDateBigger(rangeObj.startDate, rangeObj.endDate);
-      if (isStartBigger) {
-        rangeObj.endDate = rangeObj.startDate;
-      }
-    }
-
-    if (isMaxDateSmaller) {
-      rangeObj.endDate = this.maxDate;
-
-      const isEndSmaller = this.#checkIfFirstDateSmaller(rangeObj.endDate, rangeObj.startDate);
-      if (isEndSmaller) {
-        rangeObj.startDate = rangeObj.endDate;
-      }
-    }
-
-    this.startDate = rangeObj.startDate;
-    this.currentStartDate = rangeObj.startDate;
-    this.selectedStartDate = rangeObj.startDate;
-
-    this.endDate = rangeObj.endDate;
-    this.currentEndDate = rangeObj.endDate;
-    this.selectedEndDate = rangeObj.endDate;
-
-    this.#timesClickedDate = 0;
-    this.#calendarGranularity = this.granularity;
-
-    this.populateStartCalendar();
-    this.populateEndCalendar();
-    this.#setStateOfCalendarArrows();
-    this.#populateTimePickers();
-    this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
-    this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
-
-    if (this.changeStartDateCallback) {
-      this.changeStartDateCallback();
-    }
-
-    if (this.changeEndDateCallback) {
-      this.changeEndDateCallback();
-    }
   }
 
   /**
@@ -1806,61 +1289,6 @@ class EverythingDateRangePicker {
   }
 
   /**
-   * Method used to check if two dates are the same day without taking into the hours and minutes
-   * @param {Object} date1 First date to compare
-   * @param {Object} date2 Second date to compare
-   * @returns {Boolean} Indicates if the dates are equal
-   */
-  #checkIfDatesSameDay(date1, date2) {
-    if (!date1 || !date2) {
-      return false;
-    }
-
-    const firstDate = new Date(new Date(date1).setHours(0, 0, 0, 0));
-    const secondDate = new Date(new Date(date2).setHours(0, 0, 0, 0));
-
-    return firstDate.valueOf() === secondDate.valueOf();
-  }
-
-  /**
-   * Method to check if the first date sent as parameter is bigger than the second one
-   * @param {Object} date1 First date to compare
-   * @param {Object} date2 Second date to compare
-   * @returns {Boolean} Indicates if the first date is bigger
-   */
-  #checkIfFirstDateBigger(date1, date2) {
-    if (!date1 || !date2) {
-      return false;
-    }
-
-    const firstDate = new Date(date1);
-    const secondDate = new Date(date2);
-
-    const differenceOfValuesOf = firstDate.valueOf() - secondDate.valueOf();
-
-    const isFirstDateBigger = differenceOfValuesOf > 0;
-    return isFirstDateBigger;
-  }
-
-  /**
-   * Method to check if the first date sent as parameter is smaller than the second one
-   * @param {Object} date1 First date to compare
-   * @param {Object} date2 Second date to compare
-   * @returns {Boolean} Indicates if the first date is smaller
-   */
-  #checkIfFirstDateSmaller(date1, date2) {
-    if (!date1 || !date2) {
-      return false;
-    }
-
-    const firstDate = new Date(date1);
-    const secondDate = new Date(date2);
-    const differenceOfValuesOf = firstDate.valueOf() - secondDate.valueOf();
-    const isFirstDateSmaller = differenceOfValuesOf < 0;
-    return isFirstDateSmaller;
-  }
-
-  /**
    * Method that takes care of setting the state of the arrows to disable or enable them.
    * This method is only called when the user clicks a range list element
    */
@@ -1956,65 +1384,389 @@ class EverythingDateRangePicker {
   }
 
   /**
-   * Method that takes care of checking if the dates sent are equals based in the selected
-   * granularity, this method is used to verify that the arrows can still be clicked or
-   * not
-   * @param {Object} firstDate First date to compare
-   * @param {Object} secondDate Second date to compare
-   * @param {String} granularity The granularity that is currently rendering the calendar
-   * @returns {Boolean} Indicates if the dates are equals
+   * Method to change the rendered calendar of the clicked side, this method runs when the user clicks the
+   * arrows rendered on the calendars
+   * @param {Object} event The click object that contains the info of the event
    */
-  #checkIfDatesFromSameGranularityPeriod(firstDate, secondDate, granularity) {
-    let areDateEquals = false;
+  #changeRenderedCalendar(event) {
+    event.stopPropagation();
+    const clickedArrow = event.target.closest('.calendar-arrow');
+    const isLeftCalendar = clickedArrow.className.includes('left');
+    const isPreviousArrow = clickedArrow.className.includes('previous');
 
-    switch (granularity) {
+    let dateToUse = this.currentStartDate;
+    let calendarToUse = this.startCalendar;
+
+    // If is the right calendar
+    if (!isLeftCalendar) {
+      dateToUse = this.currentEndDate;
+      calendarToUse = this.endCalendar;
+    }
+
+    let newDateToRender = this.#calculateNewDate(dateToUse, isPreviousArrow);
+    newDateToRender = new Date(newDateToRender);
+
+    if (isLeftCalendar) {
+      this.currentStartDate = new Date(newDateToRender);
+    } else {
+      this.currentEndDate = new Date(newDateToRender);
+    }
+
+    const calendarSide = isLeftCalendar ? 'left' : 'right';
+    const calendarHTML = this.#generateCalendar(newDateToRender, calendarSide);
+    calendarToUse.innerHTML = calendarHTML;
+    this.#attachClickCellEvent(calendarToUse, calendarSide);
+
+    const {
+      startDateEqualsMinDate,
+      startDateEqualsMaxDate,
+      endDateEqualsMinDate,
+      endDateEqualsMaxDate,
+      startDateEqualsEndDate,
+    } = this.#checkDatesToRenderArrows();
+
+    // Cases when the clicked arrow is from the left calendar
+    if (isLeftCalendar) {
+      // Cases to disable arrows
+
+      /*
+        1st .- The user clicked the previous arrow and the start date equals the min date (hide 'previous' arrow)
+        The user clicked the next arrow:
+          2nd .- The start date equals the end date (hide 'next' arrow)
+          3rd .- The start date equals the max date (hide 'next' arrow)
+      */
+      if (
+        (isPreviousArrow && startDateEqualsMinDate) ||
+        (!isPreviousArrow && startDateEqualsEndDate) ||
+        (!isPreviousArrow && startDateEqualsMaxDate)
+      ) {
+        clickedArrow.style.display = 'none';
+      }
+
+      // Cases to enable arrows
+
+      // The user clicked the previous arrow (enables the 'next' arrow)
+      if (isPreviousArrow) {
+        const nextArrow = this.calendarContainer.querySelector('.left-calendar-next-arrow');
+        nextArrow.style.display = 'flex';
+
+        if (!this.singleCalendar) {
+          const rightCalendarPreviousArrow = this.calendarContainer.querySelector('.right-calendar-previous-arrow');
+          rightCalendarPreviousArrow.style.display = 'flex';
+        }
+      }
+
+      if (!isPreviousArrow) {
+        const previousArrow = this.calendarContainer.querySelector('.left-calendar-previous-arrow');
+        previousArrow.style.display = 'flex';
+
+        /* 
+          In the case that the next arrow is clicked in the left calendar and the
+          start and end date are equal, the previous arrow in the right calendar has to be
+          disabled too
+        */
+        if (!this.singleCalendar && startDateEqualsEndDate) {
+          const rightCalendarPreviousArrow = this.calendarContainer.querySelector('.right-calendar-previous-arrow');
+          rightCalendarPreviousArrow.style.display = 'none';
+        }
+      }
+    }
+
+    // Cases when the clicked arrow is from the right calendar
+    if (!isLeftCalendar) {
+      // Cases to disable arrows
+
+      /*
+        1st .- The user clicked the previous arrow and the end date equals the min date (hide 'previous' arrow)
+        2nd .- The user clicked the previous arrow and the end date equals the start date (hide 'previous' arrow)
+        3rd .- The user clicked the next arrow the end date equals the max date (hide 'next' arrow)
+      */
+      if (
+        (isPreviousArrow && endDateEqualsMinDate) ||
+        (isPreviousArrow && startDateEqualsEndDate) ||
+        (!isPreviousArrow && endDateEqualsMaxDate)
+      ) {
+        clickedArrow.style.display = 'none';
+      }
+
+      // Cases to enable arrows
+
+      // The user clicked the previous arrow (enables the 'next' arrow)
+      if (isPreviousArrow) {
+        const nextArrow = this.calendarContainer.querySelector('.right-calendar-next-arrow');
+        nextArrow.style.display = 'flex';
+
+        /* 
+          In the case that the previous arrow is clicked in the right calendar and the
+          start and end date are equal, the next arrow in the left calendar has to be
+          disabled too
+        */
+        if (startDateEqualsEndDate) {
+          const leftCalendarNextArrow = this.calendarContainer.querySelector('.left-calendar-next-arrow');
+          leftCalendarNextArrow.style.display = 'none';
+        }
+      }
+
+      if (!isPreviousArrow) {
+        const previousArrow = this.calendarContainer.querySelector('.right-calendar-previous-arrow');
+        previousArrow.style.display = 'flex';
+
+        const leftCalendarNextArrow = this.calendarContainer.querySelector('.left-calendar-next-arrow');
+        leftCalendarNextArrow.style.display = 'flex';
+      }
+    }
+  }
+
+  /**
+   * Method that takes care of calculating the new date we have to render
+   * in one of the calendar
+   * @param {Object} dateToUse The date we want to use to calculate the new date
+   * @param {Boolean} isPreviousArrow Indicates if we are handeling the case of one of the previous arrows
+   * @returns {Number} Timestamp of the new date calculate
+   */
+  #calculateNewDate(dateToUse, isPreviousArrow) {
+    let newDateToRender;
+
+    switch (this.#calendarGranularity) {
       case 'hour':
       case 'day':
       case 'week': {
-        const sameMonth = firstDate.getMonth() === secondDate.getMonth();
-        const sameYear = firstDate.getFullYear() === secondDate.getFullYear();
-
-        if (sameMonth && sameYear) {
-          areDateEquals = true;
-        }
+        const newMonth = isPreviousArrow ? dateToUse.getMonth() - 1 : dateToUse.getMonth() + 1;
+        newDateToRender = new Date(new Date(dateToUse).setDate(1)).setMonth(newMonth);
         break;
       }
       case 'month':
       case 'quarter':
       case 'semester': {
-        const sameYear = firstDate.getFullYear() === secondDate.getFullYear();
-
-        if (sameYear) {
-          areDateEquals = true;
-        }
+        const newYear = isPreviousArrow ? dateToUse.getFullYear() - 1 : dateToUse.getFullYear() + 1;
+        newDateToRender = new Date(dateToUse).setFullYear(newYear);
         break;
       }
-      case 'year': {
-        const yearsDifference = secondDate.getFullYear() - firstDate.getFullYear();
-
-        if (yearsDifference < 10) {
-          areDateEquals = true;
-        }
+      case 'year':
+        const newYear = isPreviousArrow ? dateToUse.getFullYear() - 10 : dateToUse.getFullYear() + 10;
+        newDateToRender = new Date(dateToUse).setFullYear(newYear);
         break;
-      }
     }
 
-    return areDateEquals;
+    return newDateToRender;
   }
 
   /**
-   * Method used to get the last day of the month from a date
-   * @param {Object} date The date object we are going to work with
-   * @returns {Number} The last day of the month
+   * Method that takes care of attaching the click event to the cells in the calendar
+   * that contains the dates
+   * @param {Object} calendarElement The DOM element of the calendar
+   * @param {String} calendarSide The side of the calendar calling this method
    */
-  #getLastDayOfMonth(date) {
-    let lastDayOfMonth = new Date(date);
-    lastDayOfMonth.setMonth(new Date(lastDayOfMonth.setDate(1)).getMonth() + 1);
-    lastDayOfMonth.setDate(0);
-    lastDayOfMonth = lastDayOfMonth.getDate();
+  #attachClickCellEvent(calendarElement, calendarSide) {
+    const listOfDateCells = calendarElement.querySelectorAll('.calendar-clickable-cell');
 
-    return lastDayOfMonth;
+    const clickEventFnct = (event) => {
+      event.stopPropagation();
+
+      if (this.granularity !== this.#calendarGranularity) {
+        let newGranularity = this.granularity;
+
+        if (['month', 'quarter', 'semester'].includes(this.granularity)) {
+          newGranularity = this.granularity;
+        } else if (this.#calendarGranularity === 'year' && ['hour', 'day', 'week'].includes(this.granularity)) {
+          newGranularity = 'month';
+        }
+
+        const dateClicked = event.target.parentElement.getAttribute('data-value');
+        if (calendarSide === 'left') {
+          this.currentStartDate = new Date(dateClicked);
+        } else {
+          this.currentEndDate = new Date(dateClicked);
+        }
+
+        this.#calendarGranularity = newGranularity;
+
+        if (this.#calendarGranularity === 'hour') {
+          this.#changeDisplayOfCalendarFooterContainers('flex');
+        }
+
+        this.#populateStartCalendar();
+        if (!this.singleCalendar) {
+          this.#populateEndCalendar();
+        }
+        this.#setStateOfCalendarArrows();
+        return;
+      }
+
+      this.#saveClickedDate(event);
+    };
+
+    listOfDateCells.forEach((dateCell) => {
+      dateCell.addEventListener('click', clickEventFnct);
+    });
   }
+
+  /**
+   * Method that takes care of saving the clicked date, this method runs when the user clicks
+   * a cell containing a date
+   * @param {Object} event The click object that contains the info of the event
+   */
+  #saveClickedDate(event) {
+    let dateClicked = event.target.parentElement.getAttribute('data-value');
+    if (!dateClicked) {
+      return;
+    }
+
+    let { startHours, startMinutes, endHours, endMinutes } = this.#getSelectedStartAndEndHoursMinutes();
+
+    if (this.singleCalendar || this.#timesClickedDate === 0) {
+      if (this.granularity === 'hour') {
+        const isStartEqualMax = this.#checkIfDatesSameDay(new Date(dateClicked), this.maxDate);
+        const isStartEqualEnd = this.#checkIfDatesSameDay(new Date(dateClicked), this.selectedEndDate);
+        const isStartEqualMin = this.#checkIfDatesSameDay(new Date(dateClicked), this.minDate);
+        const maxDateHours = this.maxDate ? this.maxDate.getHours() : false;
+        const maxDateMinutes = this.maxDate ? this.maxDate.getMinutes() : false;
+        const minDateHours = this.minDate ? this.minDate.getHours() : false;
+        const minDateMinutes = this.minDate ? this.minDate.getMinutes() : false;
+
+        // Start Date hours or minutes smaller than Min Date
+        if (this.minDate && isStartEqualMin) {
+          if (parseInt(startHours) < minDateHours) {
+            startHours = minDateHours;
+          }
+
+          if (`${startHours}` === `${minDateHours}` && this.selectedStartDate.getMinutes() < minDateMinutes) {
+            startMinutes = minDateMinutes;
+          }
+        }
+
+        // Start Date hours or minutes bigger than End Date or Max Date
+        if (this.singleCalendar && this.maxDate && isStartEqualMax) {
+          if (parseInt(startHours) > maxDateHours) {
+            startHours = maxDateHours;
+          }
+
+          if (`${startHours}` === `${maxDateHours}` && this.selectedStartDate.getMinutes() > maxDateMinutes) {
+            startMinutes = maxDateMinutes;
+          }
+        } else if (!this.singleCalendar && isStartEqualEnd) {
+          if (parseInt(startHours) > parseInt(endHours)) {
+            startHours = endHours;
+          }
+
+          if (`${startHours}` === `${endHours}` && this.selectedStartDate.getMinutes() > parseInt(endMinutes)) {
+            startMinutes = endMinutes;
+          }
+        }
+
+        startHours = this.#verifyDateElementHasTwoDigits(startHours);
+        startMinutes = this.#verifyDateElementHasTwoDigits(startMinutes);
+        dateClicked += ` ${startHours}:${startMinutes}`;
+      }
+
+      this.selectedStartDate = new Date(dateClicked);
+      this.#timesClickedDate = 1;
+      this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
+      this.#populateStartCalendar();
+      if (!this.singleCalendar) {
+        this.#populateEndCalendar();
+      }
+      this.#populateTimePickers();
+
+      if (this.singleCalendar && this.showFastNavigationArrows) {
+        this.#setStateOfFastNavigationArrow(this.selectedStartDate, true);
+        this.#setStateOfFastNavigationArrow(this.selectedStartDate, false);
+      }
+
+      if (this.changeStartDateCallback) {
+        this.changeStartDateCallback();
+      }
+      return;
+    }
+
+    if (this.granularity === 'hour') {
+      const isEndEqualMax = this.#checkIfDatesSameDay(new Date(dateClicked), this.maxDate);
+      const isEndEqualStart = this.#checkIfDatesSameDay(new Date(dateClicked), this.selectedStartDate);
+      const maxDateHours = this.maxDate ? this.maxDate.getHours() : false;
+      const maxDateMinutes = this.maxDate ? this.maxDate.getMinutes() : false;
+
+      // End Date hours or minutes smaller than Start Date
+      if (isEndEqualStart) {
+        if (parseInt(endHours) < parseInt(startHours)) {
+          endHours = startHours;
+        }
+
+        if (`${endHours}` === `${startHours}` && this.selectedEndDate.getMinutes() < parseInt(startMinutes)) {
+          endMinutes = startMinutes;
+        }
+      }
+
+      // End Date hours or minutes bigger than Max Date
+      if (this.maxDate && isEndEqualMax) {
+        if (parseInt(endHours) > maxDateHours) {
+          endHours = maxDateHours;
+        }
+
+        if (`${endHours}` === `${maxDateHours}` && this.selectedEndDate.getMinutes() > maxDateMinutes) {
+          endMinutes = maxDateMinutes;
+        }
+      }
+
+      dateClicked += ` ${endHours}:${endMinutes}`;
+    }
+
+    this.selectedEndDate = new Date(dateClicked);
+
+    // Case where new selectedEndDate is smaller than selectedStartDate
+    const selectedEndDateSmaller = this.#checkIfFirstDateSmaller(this.selectedEndDate, this.selectedStartDate);
+    if (selectedEndDateSmaller) {
+      this.selectedEndDate = this.selectedStartDate;
+      this.selectedStartDate = new Date(dateClicked);
+
+      this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
+    }
+
+    this.#timesClickedDate = 0;
+    this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
+    this.#populateStartCalendar();
+    this.#populateEndCalendar();
+    this.#populateTimePickers();
+
+    if (this.changeEndDateCallback) {
+      this.changeEndDateCallback();
+    }
+  }
+
+  /**
+   * Method that takes care of grabing the title elements like the month name or year
+   * and attach the click event to be able to navigate between granularities
+   * @param {Object} calendarTitleElement The DOM element of the whole calendar title
+   */
+  #attachClickCalendarTitleEvent(calendarTitleElement) {
+    const listOfTitleElements = calendarTitleElement.querySelectorAll('.calendarTitleElement');
+
+    const clickEventFnct = (event) => {
+      event.stopPropagation();
+
+      const clickedValue = event.target.getAttribute('data-value');
+      if (clickedValue === 'year' && this.#calendarGranularity === 'year') {
+        return;
+      }
+
+      this.#calendarGranularity = clickedValue;
+
+      if (this.#calendarGranularity !== 'hour') {
+        this.#changeDisplayOfCalendarFooterContainers('none');
+      }
+
+      this.#populateStartCalendar();
+      if (!this.singleCalendar) {
+        this.#populateEndCalendar();
+      }
+      this.#setStateOfCalendarArrows();
+    };
+
+    listOfTitleElements.forEach((titleElement) => {
+      titleElement.addEventListener('click', clickEventFnct);
+    });
+  }
+
+  //#endregion
 
   /**
    * Method that takes care of populate the calendar display with the selected date
@@ -2033,6 +1785,117 @@ class EverythingDateRangePicker {
     dateCalendarDisplayElement.innerHTML = dateFormatted.date;
   }
 
+  //#region Ranges Logics
+
+  /**
+   * Method that takes care of populate the ranges
+   */
+  #populateRangesContainer() {
+    if (this.hideRanges) {
+      this.rangesContainer.style.display = 'none';
+      return;
+    }
+
+    if (this.appendToDefaultRanges) {
+      const updatedRanges = [...this.ranges];
+
+      for (let i = 0; i < this.customRanges.length; i++) {
+        const customRange = this.customRanges[i];
+        if (customRange.position) {
+          updatedRanges.splice(customRange.position, 0, customRange);
+        } else {
+          updatedRanges.push(customRange);
+        }
+      }
+
+      this.ranges = updatedRanges;
+    } else if (this.customRanges.length) {
+      this.ranges = this.customRanges;
+    }
+
+    let listOfRangesHTML = `<ul class="calendar-ranges-list">`;
+
+    for (let i = 0; i < this.ranges.length; i++) {
+      let range = this.ranges[i];
+      const isHidden = this.hiddenRanges.some((rangeToHide) => rangeToHide === range.label);
+      const isDisabled = this.disabledRanges.some((rangeToDisable) => rangeToDisable === range.label);
+      const style = isHidden ? 'style="display: none"' : '';
+      const disabledAttr = isDisabled ? 'disabled' : '';
+
+      listOfRangesHTML += `<li class="calendar-ranges-list-element" ${style} ${disabledAttr}>${range.label}</li>`;
+    }
+
+    listOfRangesHTML += `</ul>`;
+    this.rangesContainer.innerHTML = listOfRangesHTML;
+
+    const listElements = this.rangesContainer.querySelectorAll('.calendar-ranges-list-element');
+
+    listElements.forEach((listElement) =>
+      listElement.addEventListener('click', (event) => this.#clickRangeListElementEvent(event))
+    );
+  }
+
+  #clickRangeListElementEvent(event) {
+    const listRangeElement = event.target;
+    const rangeText = listRangeElement.innerText;
+    const rangeObj = this.ranges.find((range) => range.label === rangeText);
+
+    if (!rangeObj) {
+      return;
+    }
+
+    const isMinDateBigger = this.#checkIfFirstDateBigger(this.minDate, rangeObj.startDate);
+    const isMaxDateSmaller = this.#checkIfFirstDateSmaller(this.maxDate, rangeObj.endDate);
+
+    if (isMinDateBigger) {
+      rangeObj.startDate = this.minDate;
+
+      const isStartBigger = this.#checkIfFirstDateBigger(rangeObj.startDate, rangeObj.endDate);
+      if (isStartBigger) {
+        rangeObj.endDate = rangeObj.startDate;
+      }
+    }
+
+    if (isMaxDateSmaller) {
+      rangeObj.endDate = this.maxDate;
+
+      const isEndSmaller = this.#checkIfFirstDateSmaller(rangeObj.endDate, rangeObj.startDate);
+      if (isEndSmaller) {
+        rangeObj.startDate = rangeObj.endDate;
+      }
+    }
+
+    this.startDate = rangeObj.startDate;
+    this.currentStartDate = rangeObj.startDate;
+    this.selectedStartDate = rangeObj.startDate;
+
+    this.endDate = rangeObj.endDate;
+    this.currentEndDate = rangeObj.endDate;
+    this.selectedEndDate = rangeObj.endDate;
+
+    this.#timesClickedDate = 0;
+    this.#calendarGranularity = this.granularity;
+
+    this.#populateStartCalendar();
+    this.#populateEndCalendar();
+    this.#setStateOfCalendarArrows();
+    this.#populateTimePickers();
+    this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
+    this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
+
+    if (this.changeStartDateCallback) {
+      this.changeStartDateCallback();
+    }
+
+    if (this.changeEndDateCallback) {
+      this.changeEndDateCallback();
+    }
+  }
+
+  //#endregion
+
+  //#region Granularity Dropdown Logics
+
   #attachOnChangeGranularityDropdownEvent() {
     this.granularityDropdown.addEventListener('change', (event) => {
       const selectedGranularity = this.granularityDropdown.value;
@@ -2042,6 +1905,38 @@ class EverythingDateRangePicker {
       this.#changingGranularityLogics();
     });
   }
+
+  /**
+   * Method that contains the logics needed when the granularity of the Date Range Picker is
+   * changed
+   * @param {Boolean} avoidCallbackExecution Indicates if we want to avoid the execution of the
+   * changeGranularityCallback, this is mainly used to let the user choose if the want to
+   * execute the callback when using the "setGranularity" method
+   */
+  #changingGranularityLogics(avoidCallbackExecution = false) {
+    const timePickerVisibility = this.#calendarGranularity === 'hour' ? 'flex' : 'none';
+    this.#changeDisplayOfCalendarFooterContainers(timePickerVisibility);
+    this.#populateStartCalendar();
+    this.#setStateOfCalendarArrows();
+    this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
+    if (!this.singleCalendar) {
+      this.#populateEndCalendar();
+      this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
+    }
+
+    if (this.singleCalendar && this.showFastNavigationArrows) {
+      this.#setStateOfFastNavigationArrow(this.selectedStartDate, true);
+      this.#setStateOfFastNavigationArrow(this.selectedStartDate, false);
+    }
+
+    if (this.changeGranularityCallback && !avoidCallbackExecution) {
+      this.changeGranularityCallback();
+    }
+  }
+
+  //#endregion
+
+  //#region Hours and Minutes Dropdowns Logics
 
   /**
    * Method that takes care of showing or hiding the hours and minutes dropdowns when
@@ -2305,6 +2200,8 @@ class EverythingDateRangePicker {
     };
   }
 
+  //#endregion
+
   /**
    * Method that returns if a date cell is disabled taking into account the
    * min and max date and the listOfDisabledDates
@@ -2509,6 +2406,361 @@ class EverythingDateRangePicker {
     return { selected, selectedStartDateIsSame, selectedEndDateIsSame };
   }
 
+  #setStartOrEndOfDay(event) {
+    const clickedButtonSide = event.target.getAttribute('data-value');
+    const isEnd = clickedButtonSide === 'end';
+    const hoursSelectClass = `${clickedButtonSide}-date-hours-dropdown`;
+    const minutesSelectClass = `${clickedButtonSide}-date-minutes-dropdown`;
+    const listOfHoursOptions = this.container.querySelectorAll(`.${hoursSelectClass} option:not([disabled])`);
+    let hour = listOfHoursOptions[0].value;
+
+    /* 
+      We are first setting the hours and populating the time picker because the first hour of the day
+      available could have the minutes limited, like in the case of min and max dates
+    */
+    if (isEnd) {
+      hour = listOfHoursOptions[listOfHoursOptions.length - 1].value;
+
+      let updatedEndDate = new Date(this.selectedEndDate.setHours(hour));
+      this.selectedEndDate = updatedEndDate;
+    } else {
+      let updatedStartDate = new Date(this.selectedStartDate.setHours(hour));
+      this.selectedStartDate = updatedStartDate;
+    }
+
+    this.#populateTimePickers();
+
+    const listOfMinutesOptions = this.container.querySelectorAll(`.${minutesSelectClass} option:not([disabled])`);
+    let minute = listOfMinutesOptions[0].value;
+
+    if (isEnd) {
+      minute = listOfMinutesOptions[listOfMinutesOptions.length - 1].value;
+
+      let updatedEndDate = new Date(this.selectedEndDate.setMinutes(minute));
+      this.selectedEndDate = updatedEndDate;
+    } else {
+      let updatedStartDate = new Date(this.selectedStartDate.setMinutes(minute));
+      this.selectedStartDate = updatedStartDate;
+    }
+
+    this.#populateTimePickers();
+    this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
+    this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
+
+    if (!isEnd && this.changeStartDateCallback) {
+      this.changeStartDateCallback();
+    } else if (this.changeEndDateCallback) {
+      this.changeEndDateCallback();
+    }
+  }
+
+  //#region Fast Navigation Arrows Logics
+
+  #attachClickFastNavigationArrows() {
+    const fastNavigationArrows = this.container.querySelectorAll('.date-range-picker-fast-navigation-arrow');
+    fastNavigationArrows.forEach((fastNavigationArrow) => {
+      fastNavigationArrow.addEventListener('click', (event) => this.#clickFastNavigationArrow(event));
+    });
+  }
+
+  #clickFastNavigationArrow(event) {
+    const targetClass = event.target.closest('.date-range-picker-fast-navigation-arrow').classList.value;
+    const isLeftArrow = targetClass.includes('left-arrow');
+    const arrowToShow = isLeftArrow ? 'right' : 'left';
+
+    const arrowNotClicked = this.container.querySelector(
+      `.date-range-picker-fast-navigation-arrow.${arrowToShow}-arrow`
+    );
+    arrowNotClicked.style.display = 'flex';
+
+    const currentDate = new Date(this.selectedStartDate);
+    let newRenderingDate = new Date();
+
+    switch (this.granularity) {
+      case 'hour':
+      case 'day':
+        if (isLeftArrow) {
+          newRenderingDate = new Date(currentDate.setDate(currentDate.getDate() - 1));
+        } else {
+          newRenderingDate = new Date(currentDate.setDate(currentDate.getDate() + 1));
+        }
+        break;
+      case 'week':
+        if (isLeftArrow) {
+          newRenderingDate = new Date(currentDate.setDate(currentDate.getDate() - 7));
+        } else {
+          newRenderingDate = new Date(currentDate.setDate(currentDate.getDate() + 7));
+        }
+        break;
+      case 'month':
+        newRenderingDate = new Date(currentDate.setDate(1));
+        if (isLeftArrow) {
+          newRenderingDate = new Date(newRenderingDate.setMonth(newRenderingDate.getMonth() - 1));
+        } else {
+          newRenderingDate = new Date(newRenderingDate.setMonth(newRenderingDate.getMonth() + 1));
+        }
+        break;
+      case 'quarter': {
+        newRenderingDate = new Date(currentDate.setDate(1));
+        const month = this.#verifyDateElementHasTwoDigits(newRenderingDate.getMonth() + 1);
+        const { firstMonthQuarter } = this.#getQuarterOfMonth(month);
+        if (isLeftArrow) {
+          const monthToSet = parseInt(firstMonthQuarter) - 2;
+          newRenderingDate = new Date(newRenderingDate.setMonth(monthToSet));
+        } else {
+          const monthToSet = parseInt(firstMonthQuarter) + 3;
+          newRenderingDate = new Date(newRenderingDate.setMonth(monthToSet));
+        }
+        break;
+      }
+      case 'semester': {
+        newRenderingDate = new Date(currentDate.setDate(1));
+        const month = this.#verifyDateElementHasTwoDigits(newRenderingDate.getMonth() + 1);
+        const { firstMonthSemester } = this.#getSemesterOfMonth(month);
+        if (isLeftArrow) {
+          const monthToSet = parseInt(firstMonthSemester) - 2;
+          newRenderingDate = new Date(newRenderingDate.setMonth(monthToSet));
+        } else {
+          const monthToSet = parseInt(firstMonthSemester) + 6;
+          newRenderingDate = new Date(newRenderingDate.setMonth(monthToSet));
+        }
+        break;
+      }
+      case 'year':
+        if (isLeftArrow) {
+          newRenderingDate = new Date(currentDate.setFullYear(currentDate.getFullYear() - 1));
+        } else {
+          newRenderingDate = new Date(currentDate.setFullYear(currentDate.getFullYear() + 1));
+        }
+        break;
+    }
+
+    this.startDate = new Date(newRenderingDate);
+    this.currentStartDate = this.startDate;
+    this.selectedStartDate = this.startDate;
+
+    this.#populateStartCalendar();
+    this.#setStateOfCalendarArrows();
+    this.#setStateOfFastNavigationArrow(newRenderingDate, isLeftArrow);
+    this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
+  }
+
+  /**
+   * Method used to hide the fast navigation arrow base in the min date or max date and the
+   * date sent as parameter
+   * @param {Object} dateToCompare The date object to compare
+   * @param {Boolean} isLeftArrow Just indicates if is the left arrow
+   */
+  #setStateOfFastNavigationArrow(dateToCompare, isLeftArrow) {
+    const formattedDateToCompare = this.getDateFormattedByGranularity(dateToCompare, true).date;
+    const formattedMinDate = this.minDate ? this.getDateFormattedByGranularity(this.minDate, true).date : false;
+    const formattedMaxDate = this.maxDate ? this.getDateFormattedByGranularity(this.maxDate, true).date : false;
+
+    const arrowSide = isLeftArrow ? 'left' : 'right';
+    const arrowClicked = this.container.querySelector(`.date-range-picker-fast-navigation-arrow.${arrowSide}-arrow`);
+    let display = 'flex';
+
+    if (
+      (isLeftArrow && formattedDateToCompare === formattedMinDate) ||
+      (!isLeftArrow && formattedDateToCompare === formattedMaxDate)
+    ) {
+      display = 'none';
+    }
+
+    arrowClicked.style.display = display;
+  }
+
+  //#endregion
+
+  /**
+   * Method that takes care of updating the different elements of the date
+   * range picker, like the calendars, the hours and minutes dropdowns, the arrows and
+   * the visible inputs
+   */
+  #updateDateRangePickerElementsAfterUpdatingDate() {
+    this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
+    this.#setStateOfCalendarArrows();
+    this.#populateStartCalendar();
+    if (!this.singleCalendar) {
+      this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
+      this.#populateEndCalendar();
+    }
+    this.#populateTimePickers();
+
+    if (this.singleCalendar && this.showFastNavigationArrows) {
+      this.#setStateOfFastNavigationArrow(this.selectedStartDate, true);
+      this.#setStateOfFastNavigationArrow(this.selectedStartDate, false);
+    }
+  }
+
+  /**
+   * Method that takes care of updating the CSS variables of the date picker
+   * using the customStyleVariables from the user
+   */
+  #updateStyleOfDatePicker() {
+    for (const styleVariable in this.customStyleVariables) {
+      if (Object.prototype.hasOwnProperty.call(this.customStyleVariables, styleVariable)) {
+        const value = this.customStyleVariables[styleVariable];
+        this.container.querySelector('.main-date-range-picker-container').style.setProperty(styleVariable, value);
+      }
+    }
+  }
+
+  //#region Util Methods
+
+  /**
+   * Method that takes care of verifying that a dateElement as two digits, in the negative case
+   * we attach a 0 before the dateElement.
+   * @param {String|Number} dateElement The date element we have to verify, could be a month number or day
+   * @returns {String} The date element with two digits
+   */
+  #verifyDateElementHasTwoDigits(dateElement) {
+    return ('' + dateElement).length === 1 ? `0${dateElement}` : dateElement;
+  }
+
+  /**
+   * Method that takes care of checking if a date is an String, if it is we
+   * create a Date object from that String
+   * @param {Object|String} property The date we are going to check
+   */
+  #checkValidityOfDateType(property) {
+    if (typeof this[property] === 'string') {
+      this[property] = new Date(this[property]);
+    }
+  }
+
+  /**
+   * Method that takes care if a parameter of the date picker exists, if not, the
+   * default value is returned
+   * @param {Boolean|String|Object} parameterValue The value of the parameter
+   * @param {Boolean|String|Object} defaultValue The default value that the parameter has to have
+   * @returns {Boolean|String|Object} If the parameterValue is null or undefined the defaultValue is
+   * returned, if not, the parameterValue
+   */
+  #checkIfParameterExist(parameterValue, defaultValue) {
+    if (parameterValue !== null && parameterValue !== undefined) {
+      return parameterValue;
+    }
+
+    return defaultValue;
+  }
+
+  /**
+   * Method used to check if two dates are the same day without taking into the hours and minutes
+   * @param {Object} date1 First date to compare
+   * @param {Object} date2 Second date to compare
+   * @returns {Boolean} Indicates if the dates are equal
+   */
+  #checkIfDatesSameDay(date1, date2) {
+    if (!date1 || !date2) {
+      return false;
+    }
+
+    const firstDate = new Date(new Date(date1).setHours(0, 0, 0, 0));
+    const secondDate = new Date(new Date(date2).setHours(0, 0, 0, 0));
+
+    return firstDate.valueOf() === secondDate.valueOf();
+  }
+
+  /**
+   * Method to check if the first date sent as parameter is bigger than the second one
+   * @param {Object} date1 First date to compare
+   * @param {Object} date2 Second date to compare
+   * @returns {Boolean} Indicates if the first date is bigger
+   */
+  #checkIfFirstDateBigger(date1, date2) {
+    if (!date1 || !date2) {
+      return false;
+    }
+
+    const firstDate = new Date(date1);
+    const secondDate = new Date(date2);
+
+    const differenceOfValuesOf = firstDate.valueOf() - secondDate.valueOf();
+
+    const isFirstDateBigger = differenceOfValuesOf > 0;
+    return isFirstDateBigger;
+  }
+
+  /**
+   * Method to check if the first date sent as parameter is smaller than the second one
+   * @param {Object} date1 First date to compare
+   * @param {Object} date2 Second date to compare
+   * @returns {Boolean} Indicates if the first date is smaller
+   */
+  #checkIfFirstDateSmaller(date1, date2) {
+    if (!date1 || !date2) {
+      return false;
+    }
+
+    const firstDate = new Date(date1);
+    const secondDate = new Date(date2);
+    const differenceOfValuesOf = firstDate.valueOf() - secondDate.valueOf();
+    const isFirstDateSmaller = differenceOfValuesOf < 0;
+    return isFirstDateSmaller;
+  }
+
+  /**
+   * Method that takes care of checking if the dates sent are equals based in the selected
+   * granularity, this method is used to verify that the arrows can still be clicked or
+   * not
+   * @param {Object} firstDate First date to compare
+   * @param {Object} secondDate Second date to compare
+   * @param {String} granularity The granularity that is currently rendering the calendar
+   * @returns {Boolean} Indicates if the dates are equals
+   */
+  #checkIfDatesFromSameGranularityPeriod(firstDate, secondDate, granularity) {
+    let areDateEquals = false;
+
+    switch (granularity) {
+      case 'hour':
+      case 'day':
+      case 'week': {
+        const sameMonth = firstDate.getMonth() === secondDate.getMonth();
+        const sameYear = firstDate.getFullYear() === secondDate.getFullYear();
+
+        if (sameMonth && sameYear) {
+          areDateEquals = true;
+        }
+        break;
+      }
+      case 'month':
+      case 'quarter':
+      case 'semester': {
+        const sameYear = firstDate.getFullYear() === secondDate.getFullYear();
+
+        if (sameYear) {
+          areDateEquals = true;
+        }
+        break;
+      }
+      case 'year': {
+        const yearsDifference = secondDate.getFullYear() - firstDate.getFullYear();
+
+        if (yearsDifference < 10) {
+          areDateEquals = true;
+        }
+        break;
+      }
+    }
+
+    return areDateEquals;
+  }
+
+  /**
+   * Method used to get the last day of the month from a date
+   * @param {Object} date The date object we are going to work with
+   * @returns {Number} The last day of the month
+   */
+  #getLastDayOfMonth(date) {
+    let lastDayOfMonth = new Date(date);
+    lastDayOfMonth.setMonth(new Date(lastDayOfMonth.setDate(1)).getMonth() + 1);
+    lastDayOfMonth.setDate(0);
+    lastDayOfMonth = lastDayOfMonth.getDate();
+
+    return lastDayOfMonth;
+  }
+
   /**
    * Method that takes care of returning the quarter of the month passed
    * as parameter
@@ -2600,168 +2852,6 @@ class EverythingDateRangePicker {
     return { semester, firstMonthSemester };
   }
 
-  #setStartOrEndOfDay(event) {
-    const clickedButtonSide = event.target.getAttribute('data-value');
-    const isEnd = clickedButtonSide === 'end';
-    const hoursSelectClass = `${clickedButtonSide}-date-hours-dropdown`;
-    const minutesSelectClass = `${clickedButtonSide}-date-minutes-dropdown`;
-    const listOfHoursOptions = this.container.querySelectorAll(`.${hoursSelectClass} option:not([disabled])`);
-    let hour = listOfHoursOptions[0].value;
-
-    /* 
-      We are first setting the hours and populating the time picker because the first hour of the day
-      available could have the minutes limited, like in the case of min and max dates
-    */
-    if (isEnd) {
-      hour = listOfHoursOptions[listOfHoursOptions.length - 1].value;
-
-      let updatedEndDate = new Date(this.selectedEndDate.setHours(hour));
-      this.selectedEndDate = updatedEndDate;
-    } else {
-      let updatedStartDate = new Date(this.selectedStartDate.setHours(hour));
-      this.selectedStartDate = updatedStartDate;
-    }
-
-    this.#populateTimePickers();
-
-    const listOfMinutesOptions = this.container.querySelectorAll(`.${minutesSelectClass} option:not([disabled])`);
-    let minute = listOfMinutesOptions[0].value;
-
-    if (isEnd) {
-      minute = listOfMinutesOptions[listOfMinutesOptions.length - 1].value;
-
-      let updatedEndDate = new Date(this.selectedEndDate.setMinutes(minute));
-      this.selectedEndDate = updatedEndDate;
-    } else {
-      let updatedStartDate = new Date(this.selectedStartDate.setMinutes(minute));
-      this.selectedStartDate = updatedStartDate;
-    }
-
-    this.#populateTimePickers();
-    this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
-    this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
-
-    if (!isEnd && this.changeStartDateCallback) {
-      this.changeStartDateCallback();
-    } else if (this.changeEndDateCallback) {
-      this.changeEndDateCallback();
-    }
-  }
-
-  #attachClickFastNavigationArrows() {
-    const fastNavigationArrows = this.container.querySelectorAll('.date-range-picker-fast-navigation-arrow');
-    fastNavigationArrows.forEach((fastNavigationArrow) => {
-      fastNavigationArrow.addEventListener('click', (event) => this.#clickFastNavigationArrow(event));
-    });
-  }
-
-  #clickFastNavigationArrow(event) {
-    const targetClass = event.target.closest('.date-range-picker-fast-navigation-arrow').classList.value;
-    const isLeftArrow = targetClass.includes('left-arrow');
-    const arrowToShow = isLeftArrow ? 'right' : 'left';
-
-    const arrowNotClicked = this.container.querySelector(
-      `.date-range-picker-fast-navigation-arrow.${arrowToShow}-arrow`
-    );
-    arrowNotClicked.style.display = 'flex';
-
-    const currentDate = new Date(this.selectedStartDate);
-    let newRenderingDate = new Date();
-
-    switch (this.granularity) {
-      case 'hour':
-      case 'day':
-        if (isLeftArrow) {
-          newRenderingDate = new Date(currentDate.setDate(currentDate.getDate() - 1));
-        } else {
-          newRenderingDate = new Date(currentDate.setDate(currentDate.getDate() + 1));
-        }
-        break;
-      case 'week':
-        if (isLeftArrow) {
-          newRenderingDate = new Date(currentDate.setDate(currentDate.getDate() - 7));
-        } else {
-          newRenderingDate = new Date(currentDate.setDate(currentDate.getDate() + 7));
-        }
-        break;
-      case 'month':
-        newRenderingDate = new Date(currentDate.setDate(1));
-        if (isLeftArrow) {
-          newRenderingDate = new Date(newRenderingDate.setMonth(newRenderingDate.getMonth() - 1));
-        } else {
-          newRenderingDate = new Date(newRenderingDate.setMonth(newRenderingDate.getMonth() + 1));
-        }
-        break;
-      case 'quarter': {
-        newRenderingDate = new Date(currentDate.setDate(1));
-        const month = this.#verifyDateElementHasTwoDigits(newRenderingDate.getMonth() + 1);
-        const { firstMonthQuarter } = this.#getQuarterOfMonth(month);
-        if (isLeftArrow) {
-          const monthToSet = parseInt(firstMonthQuarter) - 2;
-          newRenderingDate = new Date(newRenderingDate.setMonth(monthToSet));
-        } else {
-          const monthToSet = parseInt(firstMonthQuarter) + 3;
-          newRenderingDate = new Date(newRenderingDate.setMonth(monthToSet));
-        }
-        break;
-      }
-      case 'semester': {
-        newRenderingDate = new Date(currentDate.setDate(1));
-        const month = this.#verifyDateElementHasTwoDigits(newRenderingDate.getMonth() + 1);
-        const { firstMonthSemester } = this.#getSemesterOfMonth(month);
-        if (isLeftArrow) {
-          const monthToSet = parseInt(firstMonthSemester) - 2;
-          newRenderingDate = new Date(newRenderingDate.setMonth(monthToSet));
-        } else {
-          const monthToSet = parseInt(firstMonthSemester) + 6;
-          newRenderingDate = new Date(newRenderingDate.setMonth(monthToSet));
-        }
-        break;
-      }
-      case 'year':
-        if (isLeftArrow) {
-          newRenderingDate = new Date(currentDate.setFullYear(currentDate.getFullYear() - 1));
-        } else {
-          newRenderingDate = new Date(currentDate.setFullYear(currentDate.getFullYear() + 1));
-        }
-        break;
-    }
-
-    this.startDate = new Date(newRenderingDate);
-    this.currentStartDate = this.startDate;
-    this.selectedStartDate = this.startDate;
-
-    this.populateStartCalendar();
-    this.#setStateOfCalendarArrows();
-    this.#setStateOfFastNavigationArrow(newRenderingDate, isLeftArrow);
-    this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
-  }
-
-  /**
-   * Method used to hide the fast navigation arrow base in the min date or max date and the
-   * date sent as parameter
-   * @param {Object} dateToCompare The date object to compare
-   * @param {Boolean} isLeftArrow Just indicates if is the left arrow
-   */
-  #setStateOfFastNavigationArrow(dateToCompare, isLeftArrow) {
-    const formattedDateToCompare = this.getDateFormattedByGranularity(dateToCompare, true).date;
-    const formattedMinDate = this.minDate ? this.getDateFormattedByGranularity(this.minDate, true).date : false;
-    const formattedMaxDate = this.maxDate ? this.getDateFormattedByGranularity(this.maxDate, true).date : false;
-
-    const arrowSide = isLeftArrow ? 'left' : 'right';
-    const arrowClicked = this.container.querySelector(`.date-range-picker-fast-navigation-arrow.${arrowSide}-arrow`);
-    let display = 'flex';
-
-    if (
-      (isLeftArrow && formattedDateToCompare === formattedMinDate) ||
-      (!isLeftArrow && formattedDateToCompare === formattedMaxDate)
-    ) {
-      display = 'none';
-    }
-
-    arrowClicked.style.display = display;
-  }
-
   /**
    * Get ISO 8601 week number and ISO week year or the US-style week number and year based in
    * the first day of the week set
@@ -2845,55 +2935,6 @@ class EverythingDateRangePicker {
     };
   }
 
-  /**
-   * Method that contains the logics needed when the granularity of the Date Range Picker is
-   * changed
-   * @param {Boolean} avoidCallbackExecution Indicates if we want to avoid the execution of the
-   * changeGranularityCallback, this is mainly used to let the user choose if the want to
-   * execute the callback when using the "setGranularity" method
-   */
-  #changingGranularityLogics(avoidCallbackExecution = false) {
-    const timePickerVisibility = this.#calendarGranularity === 'hour' ? 'flex' : 'none';
-    this.#changeDisplayOfCalendarFooterContainers(timePickerVisibility);
-    this.populateStartCalendar();
-    this.#setStateOfCalendarArrows();
-    this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
-    if (!this.singleCalendar) {
-      this.populateEndCalendar();
-      this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
-    }
-
-    if (this.singleCalendar && this.showFastNavigationArrows) {
-      this.#setStateOfFastNavigationArrow(this.selectedStartDate, true);
-      this.#setStateOfFastNavigationArrow(this.selectedStartDate, false);
-    }
-
-    if (this.changeGranularityCallback && !avoidCallbackExecution) {
-      this.changeGranularityCallback();
-    }
-  }
-
-  /**
-   * Method that takes care of updating the different elements of the date
-   * range picker, like the calendars, the hours and minutes dropdowns, the arrows and
-   * the visible inputs
-   */
-  #updateDateRangePickerElementsAfterUpdatingDate() {
-    this.#setDateCalendarDisplay(this.selectedStartDate, 'left');
-    this.#setStateOfCalendarArrows();
-    this.populateStartCalendar();
-    if (!this.singleCalendar) {
-      this.#setDateCalendarDisplay(this.selectedEndDate, 'right');
-      this.populateEndCalendar();
-    }
-    this.#populateTimePickers();
-
-    if (this.singleCalendar && this.showFastNavigationArrows) {
-      this.#setStateOfFastNavigationArrow(this.selectedStartDate, true);
-      this.#setStateOfFastNavigationArrow(this.selectedStartDate, false);
-    }
-  }
-
   #sendConsoleMessage(message, type) {
     switch (type) {
       case 'warning':
@@ -2904,18 +2945,9 @@ class EverythingDateRangePicker {
     }
   }
 
-  /**
-   * Method that takes care of updating the CSS variables of the date picker
-   * using the customStyleVariables from the user
-   */
-  #updateStyleOfDatePicker() {
-    for (const styleVariable in this.customStyleVariables) {
-      if (Object.prototype.hasOwnProperty.call(this.customStyleVariables, styleVariable)) {
-        const value = this.customStyleVariables[styleVariable];
-        this.container.querySelector('.main-date-range-picker-container').style.setProperty(styleVariable, value);
-      }
-    }
-  }
+  //#endregion
+
+  //#endregion
 }
 
 // export default EverythingDateRangePicker;
