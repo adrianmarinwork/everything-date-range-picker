@@ -6,11 +6,8 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'everything-date-range-picker.js',
-    library: {
-      type: 'umd',
-      name: 'EverythingDateRangePicker',
-      umdNamedDefine: true,
-    },
+    library: 'EverythingDateRangePicker',
+    libraryTarget: 'umd',
     globalObject: 'this',
   },
   module: {
