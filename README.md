@@ -10,7 +10,7 @@
 
 ## 🧪 Demo
 
-[Live Demo](https://adrianmarinwork.github.io/everything-date-range-picker/demo/)
+[Live Demo](https://adrianmarinwork.github.io/everything-date-range-picker/)
 
 ## 🚀 Installation
 
@@ -113,4 +113,4 @@ Contributions are welcome! Please open issues and submit pull requests for any e
 
 - [GitHub Repository](https://github.com/adrianmarinwork/everything-date-range-picker)
 - [NPM Package](https://www.npmjs.com/package/everything-date-range-picker)
-- [Live Demo](https://adrianmarinwork.github.io/everything-date-range-picker/demo/)
+- [Live Demo](https://adrianmarinwork.github.io/everything-date-range-picker/)

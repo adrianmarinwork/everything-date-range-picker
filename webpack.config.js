@@ -1,7 +1,7 @@
 const path = require('path');
 
 module.exports = {
-  entry: './src/everything-date-picker.js',
+  entry: './src/everything-date-range-picker.js',
   mode: 'production',
   output: {
     path: path.resolve(__dirname, 'dist'),
