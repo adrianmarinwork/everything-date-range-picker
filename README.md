@@ -1,16 +1,12 @@
 # EverythingDateRangePicker
 
-**A lightweight, dependency-free JavaScript date range picker.**
-
-![EverythingDateRangePicker Screenshot](https://github.com/adrianmarinwork/everything-date-range-picker/assets/screenshot.png)
-
-## ✨ Features
+**A lightweight, dependency-free JavaScript date range picker with multiple granularities.**
 
 - 📅 **Pure JavaScript**: No external dependencies.
 - 🎨 **Customizable**: Easily style to fit your application's design.
+- 🏎️ **Fast Navigation**: Easily navigate between dates by clicking the calendar header.
 - 🔧 **UMD Build**: Compatible with various module systems.
 - 🛠️ **Easy Integration**: Simple setup with minimal configuration.
-- 🏎️ **Fast Navigation**: Easily navigate between dates by clicking the calendar header.
 
 ## 🧪 Demo
 
