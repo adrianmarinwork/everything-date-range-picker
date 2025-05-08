@@ -1,19 +1,20 @@
-const path = require("path");
+const path = require('path');
 
 module.exports = {
-  entry: "./src/everything-date-picker.js",
+  entry: './src/everything-date-picker.js',
+  mode: 'production',
   output: {
-    filename: "everything-date-range-picker.js",
-    path: path.resolve(__dirname, "dist"),
-    library: "EverythingDateRangePicker",
-    libraryTarget: "umd",
-    globalObject: "this",
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'everything-date-range-picker.js',
+    library: 'EverythingDateRangePicker',
+    libraryTarget: 'umd',
+    globalObject: 'this',
   },
   module: {
     rules: [
       {
         test: /\.css$/,
-        use: ["style-loader", "css-loader"],
+        use: ['style-loader', 'css-loader'],
       },
     ],
   },

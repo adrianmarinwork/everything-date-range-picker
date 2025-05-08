@@ -1,11 +1,40 @@
 {
+  "name": "everything-date-range-picker",
+  "version": "1.0.0",
+  "description": "A lightweight and flexible JavaScript date range picker.",
+  "main": "dist/everything-date-range-picker.js",
+  "keywords": [
+    "date range picker",
+    "date picker",
+    "javascript",
+    "datepicker",
+    "calendar"
+  ],
+  "author": {
+    "name": "Adrián Marín",
+    "email": "adrianmarinwork@gmail.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adrianmarinwork/everything-date-range-picker"
+  },
+  "homepage": "https://github.com/adrianmarinwork/everything-date-range-picker#readme",
+  "bugs": {
+    "url": "https://github.com/adrianmarinwork/everything-date-range-picker/issues"
+  },
+  "scripts": {
+    "build": "webpack --config webpack.config.js",
+    "release": "npm publish --access public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "devDependencies": {
     "css-loader": "^7.1.1",
     "style-loader": "^4.0.0",
     "webpack": "^5.91.0",
     "webpack-cli": "^5.1.4"
-  },
-  "scripts": {
-    "build": "webpack --config webpack.config.js"
   }
 }

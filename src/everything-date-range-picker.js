@@ -1,4 +1,4 @@
-// import "./everything-date-range-picker.css";
+import './everything-date-range-picker.css';
 
 class EverythingDateRangePicker {
   #defaultRanges = [
@@ -2950,4 +2950,4 @@ class EverythingDateRangePicker {
   //#endregion
 }
 
-// export default EverythingDateRangePicker;
+export default EverythingDateRangePicker;
