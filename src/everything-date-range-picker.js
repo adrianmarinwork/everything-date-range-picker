@@ -2950,10 +2950,4 @@ class EverythingDateRangePicker {
   //#endregion
 }
 
-// Expose globally only if running in the browser directly
-if (typeof window !== 'undefined') {
-  window.EverythingDateRangePicker = EverythingDateRangePicker.default || EverythingDateRangePicker;
-}
-
-// For NPM
 export default EverythingDateRangePicker;
