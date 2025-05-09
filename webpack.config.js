@@ -8,6 +8,7 @@ module.exports = {
     filename: 'everything-date-range-picker.js',
     library: 'EverythingDateRangePicker',
     libraryTarget: 'umd',
+    libraryExport: 'default',
     globalObject: 'this',
   },
   module: {
