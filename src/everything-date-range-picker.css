@@ -56,6 +56,10 @@
     }
   }
 
+  & .date-range-picker-fast-navigation-arrow {
+    cursor: pointer;
+  }
+
   & .date-range-picker-container {
     position: relative;
     display: inline-block;
